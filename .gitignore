@@ -1,0 +1,44 @@
+# Large data files
+*.npz
+*.pkl
+*.vtk
+
+# Archived outputs (11GB)
+_archived_outputs/
+
+# Archived files
+_archived_scripts/
+_archived_figures/
+_archived_data/
+
+# Generated results and logs
+results/
+logs/
+
+# Generated figures (not paper/figures which is tracked)
+figures/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# LaTeX intermediates
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+
+# Preview duplicates
+*_preview.png
