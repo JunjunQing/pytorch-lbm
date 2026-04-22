@@ -10,16 +10,18 @@ import numpy as np
 
 def measure_spread_factor(C: torch.Tensor,
                           solid_mask: torch.Tensor = None) -> dict:
-    """Compute spread factors Dx, Dy, Dz from the composition field.
+    """Compute spread factors Dx, Dy, [Dz] from the composition field.
 
     The interface is identified by the C > 0.5 isosurface.  Spread factors
     measure the extent of the liquid phase along each axis.
 
+    Works for both 2D (nx, ny) and 3D (nx, ny, nz) arrays.
+
     Parameters
     ----------
-    C : Tensor, shape (nx, ny, nz)
+    C : Tensor, shape (nx, ny) or (nx, ny, nz)
         Composition field (1 = liquid, 0 = gas).
-    solid_mask : Tensor, shape (nx, ny, nz), optional
+    solid_mask : Tensor, optional
         Boolean mask of solid nodes.  Solid nodes are excluded from the
         interface search.
 
@@ -28,7 +30,7 @@ def measure_spread_factor(C: torch.Tensor,
     dict with keys:
         Dx     : float  -- spread in x direction (lattice units)
         Dy     : float  -- spread in y direction
-        Dz     : float  -- spread in z direction
+        Dz     : float  -- spread in z direction (0.0 for 2D)
         k      : float  -- ridge ratio Dx / Dy (1.0 for axisymmetric)
         volume : float  -- total liquid volume (sum of C)
         C_max  : float  -- maximum C value
@@ -49,6 +51,8 @@ def measure_spread_factor(C: torch.Tensor,
     else:
         C_clean = C_np
 
+    ndim = C_clean.ndim
+
     # Interface nodes: C > 0.5
     interface = C_clean > 0.5
 
@@ -62,13 +66,13 @@ def measure_spread_factor(C: torch.Tensor,
         }
 
     # Find extent along each axis
-    coords = np.argwhere(interface)  # (N, 3) with columns x, y, z
-    x_min, y_min, z_min = coords.min(axis=0)
-    x_max, y_max, z_max = coords.max(axis=0)
+    coords = np.argwhere(interface)  # (N, ndim) with columns x, y[, z]
+    mins = coords.min(axis=0)
+    maxs = coords.max(axis=0)
 
-    Dx = float(x_max - x_min + 1)
-    Dy = float(y_max - y_min + 1)
-    Dz = float(z_max - z_min + 1)
+    Dx = float(maxs[0] - mins[0] + 1)
+    Dy = float(maxs[1] - mins[1] + 1)
+    Dz = float(maxs[2] - mins[2] + 1) if ndim == 3 else 0.0
 
     k = Dx / Dy if Dy > 0 else 0.0
 
@@ -87,21 +91,17 @@ def measure_contact_angle(C: torch.Tensor,
     the wall, then computes the angle of the C = 0.5 contour relative to
     the wall normal.
 
-    For a 3D domain with a flat wall at z = 0 (solid at z = 0), the
-    contact angle is estimated by:
-      1. Locate the first fluid row (z = 1 typically)
-      2. Find columns where C > 0.5 at that row (contact region)
-      3. Measure the gradient of C in z vs. radial direction
-      4. theta = arctan(|dr/dz|) at the contact line
+    For 3D (axis='z'): wall at last dimension.
+    For 2D (axis='y'): wall at last dimension (y).
 
     Parameters
     ----------
-    C : Tensor, shape (nx, ny, nz)
+    C : Tensor, shape (nx, ny) or (nx, ny, nz)
         Composition field.
-    solid_mask : Tensor, shape (nx, ny, nz)
+    solid_mask : Tensor, same shape as C
         Boolean solid mask (True = solid).
     axis : str
-        Wall normal axis ('z' for wall at z = 0).
+        Wall normal axis ('z' for 3D wall, 'y' for 2D wall).
 
     Returns
     -------
@@ -119,35 +119,99 @@ def measure_contact_angle(C: torch.Tensor,
     else:
         mask_np = np.asarray(solid_mask)
 
+    ndim = C_np.ndim
+    shape = C_np.shape
+
+    if ndim == 2:
+        return _measure_contact_angle_2d(C_np, mask_np)
+    else:
+        return _measure_contact_angle_3d(C_np, mask_np)
+
+
+def _measure_contact_angle_2d(C_np, mask_np):
+    """Contact angle estimation for 2D simulations.
+
+    Wall is at y=0 (first dimension is x, second is y).
+    """
+    nx, ny = C_np.shape
+
+    # Find the first fluid row above the solid wall
+    y_wall_top = 0
+    for y in range(ny):
+        if not mask_np[:, y].all():
+            y_wall_top = y
+            break
+
+    y_fluid = y_wall_top + 1
+    if y_fluid >= ny:
+        return 180.0
+
+    # Get the C field at the first fluid layer: shape (nx,)
+    C_wall = C_np[:, y_fluid]
+
+    # Find contact region: columns where C > 0.5
+    contact_mask = C_wall > 0.5
+    if not contact_mask.any():
+        return 180.0
+
+    cx = nx / 2.0
+    contact_x = np.argwhere(contact_mask).flatten()
+    radii = np.abs(contact_x - cx)
+    idx_outer = np.argmax(radii)
+    r_contact = radii[idx_outer]
+
+    if r_contact < 1.0:
+        return 180.0
+
+    x_c = contact_x[idx_outer]
+    C_column = C_np[x_c, :]  # (ny,)
+
+    # Find y where C crosses 0.5
+    y_interface = None
+    for y in range(y_fluid, ny - 1):
+        if C_column[y] >= 0.5 and C_column[y + 1] < 0.5:
+            dy = (C_column[y] - 0.5) / (C_column[y] - C_column[y + 1] + 1e-10)
+            y_interface = y + dy
+            break
+
+    if y_interface is None:
+        return 180.0
+
+    dy = y_interface - y_wall_top
+    if dy < 0.5:
+        dy = 0.5
+
+    theta_rad = np.arctan2(r_contact, dy)
+    return np.degrees(theta_rad)
+
+
+def _measure_contact_angle_3d(C_np, mask_np):
+    """Contact angle estimation for 3D simulations.
+
+    Wall is at z=0. Original implementation preserved.
+    """
     nx, ny, nz = C_np.shape
 
     # Find the first fluid layer above the solid wall
-    # Assume wall at z = 0 (solid_mask[:, :, 0] = True)
-    # Find z_wall_top: first z where solid_mask is False
     z_wall_top = 0
     for z in range(nz):
         if not mask_np[:, :, z].all():
             z_wall_top = z
             break
 
-    # The first fluid layer is one above the wall top
     z_fluid = z_wall_top + 1
     if z_fluid >= nz:
         return 180.0
 
-    # Get the C field at the first fluid layer: shape (nx, ny)
     C_wall = C_np[:, :, z_fluid]
 
-    # Find contact line region: columns where C > 0.5
     contact_mask = C_wall > 0.5
     if not contact_mask.any():
         return 180.0
 
-    # Center of the domain
     cx, cy = nx / 2.0, ny / 2.0
 
-    # Find the outermost contact point (farthest from center where C > 0.5)
-    contact_coords = np.argwhere(contact_mask)  # (N, 2) columns x, y
+    contact_coords = np.argwhere(contact_mask)
     radii = np.sqrt((contact_coords[:, 0] - cx) ** 2 +
                     (contact_coords[:, 1] - cy) ** 2)
     idx_outer = np.argmax(radii)
@@ -156,16 +220,12 @@ def measure_contact_angle(C: torch.Tensor,
     if r_contact < 1.0:
         return 180.0
 
-    # Estimate the slope of the interface at the contact line.
-    # Sample C along z at the outermost contact column.
     x_c, y_c = contact_coords[idx_outer]
-    C_column = C_np[x_c, y_c, :]  # (nz,)
+    C_column = C_np[x_c, y_c, :]
 
-    # Find z where C crosses 0.5 (the interface height at the contact point)
     z_interface = None
     for z in range(z_fluid, nz - 1):
         if C_column[z] >= 0.5 and C_column[z + 1] < 0.5:
-            # Linear interpolation
             dz = (C_column[z] - 0.5) / (C_column[z] - C_column[z + 1] + 1e-10)
             z_interface = z + dz
             break
@@ -173,19 +233,9 @@ def measure_contact_angle(C: torch.Tensor,
     if z_interface is None:
         return 180.0
 
-    # The contact angle is the angle between the interface and the wall.
-    # Using the geometry: tan(theta) = r_contact / (z_interface - z_wall_top)
-    # theta is measured from the wall surface (0 = complete wetting, 180 = no wetting)
     dz = z_interface - z_wall_top
     if dz < 0.5:
         dz = 0.5
 
-    # For a spherical cap, the angle from the wall is:
-    # theta = arctan(r_contact / dz) gives the half-angle from vertical.
-    # Contact angle (from wall) = 90 + arctan(dz/r_contact) - 90 = arctan(r_contact/dz)
-    # More precisely, for a spherical cap geometry:
-    #   tan(theta) = r / h where theta is measured from the substrate
     theta_rad = np.arctan2(r_contact, dz)
-    theta_deg = np.degrees(theta_rad)
-
-    return theta_deg
+    return np.degrees(theta_rad)

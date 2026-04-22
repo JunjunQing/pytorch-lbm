@@ -8,8 +8,15 @@ Outside droplet: C = 0 (gas)
 Interface: smooth transition over ~2*xi lattice units
 
 Also creates density and velocity fields from C.
+
+Supports both 2D (nz=1 → grid_shape (nx,ny), velocity (2,nx,ny))
+and 3D (nz>1 → grid_shape (nx,ny,nz), velocity (3,nx,ny,nz)).
 """
 import numpy as np
+
+
+def _is_2d(nz):
+    return nz == 1
 
 
 def create_fe_droplet(nx, ny, nz, center=None, radius=None,
@@ -19,9 +26,10 @@ def create_fe_droplet(nx, ny, nz, center=None, radius=None,
     Parameters
     ----------
     nx, ny, nz : int
-        Grid dimensions.
+        Grid dimensions.  nz=1 triggers 2D mode.
     center : tuple, optional
-        Droplet center (cx, cy, cz) in lattice units.
+        Droplet center in lattice units.
+        2D: (cx, cy), 3D: (cx, cy, cz).
     radius : float, optional
         Droplet radius in lattice units.
     xi : float
@@ -31,29 +39,38 @@ def create_fe_droplet(nx, ny, nz, center=None, radius=None,
 
     Returns
     -------
-    C : ndarray (nx, ny, nz), float32
+    C : ndarray, float32
         Composition field (1=liquid, 0=gas).
-    rho : ndarray (nx, ny, nz), float32
-        Density field.
-    u : ndarray (3, nx, ny, nz), float32
+        Shape: (nx, ny) in 2D, (nx, ny, nz) in 3D.
+    rho : ndarray, float32
+        Density field (same shape as C).
+    u : ndarray, float32
         Velocity field (zero initially).
+        Shape: (2, nx, ny) in 2D, (3, nx, ny, nz) in 3D.
     """
+    is2d = _is_2d(nz)
+    ndim = 2 if is2d else 3
+
     if radius is None:
-        radius = min(nx, ny, nz) * 0.15
+        radius = min(nx, ny) * 0.15 if is2d else min(nx, ny, nz) * 0.15
     if center is None:
-        center = (nx / 2.0, ny / 2.0, nz * 0.6)
+        if is2d:
+            center = (nx / 2.0, ny * 0.6)
+        else:
+            center = (nx / 2.0, ny / 2.0, nz * 0.6)
 
-    # 3D distance field
-    x = np.arange(nx)
-    y = np.arange(ny)
-    z = np.arange(nz)
-    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+    # Distance field
+    grids = [np.arange(nx), np.arange(ny)]
+    if not is2d:
+        grids.append(np.arange(nz))
+    mesh = np.meshgrid(*grids, indexing='ij')
 
-    dist = np.sqrt((X - center[0])**2 + (Y - center[1])**2 + (Z - center[2])**2)
+    dist_sq = sum((M - center[d]) ** 2 for d, M in enumerate(mesh))
+    dist = np.sqrt(dist_sq)
 
     # Interface profile matching the Allen-Cahn equilibrium with
     # beta = 12*sigma/xi, kappa = 3*sigma*xi/2:
-    #   mu_phi = 0  =>  phi = 0.5*(1 - tanh(2*r/ξ))
+    #   mu_phi = 0  =>  phi = 0.5*(1 - tanh(2*r/xi))
     # For a droplet: C = 0.5 + 0.5*tanh(2*(R-r)/xi)
     # Interface thickness ~xi (from C=0.01 to C=0.99 over ~2.5*xi)
     C = 0.5 + 0.5 * np.tanh(2.0 * (radius - dist) / xi)
@@ -63,23 +80,33 @@ def create_fe_droplet(nx, ny, nz, center=None, radius=None,
     rho = (C * rho_l + (1.0 - C) * rho_g).astype(np.float32)
 
     # Zero velocity
-    u = np.zeros((3, nx, ny, nz), dtype=np.float32)
+    u = np.zeros((ndim,) + C.shape, dtype=np.float32)
 
     return C, rho, u
 
 
 def create_fe_droplet_with_impact(nx, ny, nz, center=None, radius=None,
                                    xi=5.0, rho_l=828.0, rho_g=1.0,
-                                   u_impact=(0.0, 0.0, -0.05)):
+                                   u_impact=None):
     """Create initial fields with impact velocity.
 
     The impact velocity is applied smoothly inside the droplet using the
     composition field as a mask.
+
+    Parameters
+    ----------
+    u_impact : tuple or None
+        2D: (ux, uy), 3D: (ux, uy, uz). Defaults to zero.
     """
+    is2d = _is_2d(nz)
+    ndim = 2 if is2d else 3
+    if u_impact is None:
+        u_impact = (0.0,) * ndim
+
     C, rho, u = create_fe_droplet(nx, ny, nz, center, radius, xi, rho_l, rho_g)
 
     # Apply impact velocity smoothly using C as weight
-    for d in range(3):
+    for d in range(ndim):
         u[d] = u_impact[d] * C
 
     return C, rho, u
@@ -106,20 +133,28 @@ def place_droplet_above_substrate(nx, ny, nz, substrate_type="flat",
     -------
     C, rho, u : arrays
     """
+    is2d = _is_2d(nz)
     cx = nx / 2.0
     cy = ny / 2.0
 
-    if substrate_type == "flat" or R_star is None:
-        cz = 1.0 + gap + R_drop
+    if is2d:
+        if substrate_type == "flat" or R_star is None:
+            cy_drop = 1.0 + gap + R_drop
+        else:
+            R_g = R_star * R_drop
+            y_surface = 2.0 * R_g - 0.5
+            cy_drop = y_surface + gap + R_drop
+        center = (cx, cy_drop)
+        u_impact = (0.0, -0.05)
     else:
-        R_g = R_star * R_drop
-        # Top of ridge/convex at center
-        z_surface = 2.0 * R_g - 0.5
-        cz = z_surface + gap + R_drop
+        cz = 1.0 + gap + R_drop if (substrate_type == "flat" or R_star is None) else \
+             (2.0 * R_star * R_drop - 0.5 + gap + R_drop)
+        center = (cx, cy, cz)
+        u_impact = (0.0, 0.0, -0.05)
 
     return create_fe_droplet_with_impact(
-        nx, ny, nz, center=(cx, cy, cz), radius=R_drop,
-        xi=xi, rho_l=rho_l, rho_g=rho_g
+        nx, ny, nz, center=center, radius=R_drop,
+        xi=xi, rho_l=rho_l, rho_g=rho_g, u_impact=u_impact
     )
 
 
@@ -131,9 +166,9 @@ def create_multi_droplet_with_impact(nx, ny, nz, centers, radii,
     Parameters
     ----------
     nx, ny, nz : int
-        Grid dimensions.
+        Grid dimensions. nz=1 triggers 2D mode.
     centers : list of tuple
-        List of (cx, cy, cz) for each droplet.
+        List of center coordinates. 2D: (cx, cy), 3D: (cx, cy, cz).
     radii : list of float
         Radius of each droplet.
     xi : float
@@ -141,29 +176,34 @@ def create_multi_droplet_with_impact(nx, ny, nz, centers, radii,
     rho_l, rho_g : float
         Liquid and gas densities.
     u_impacts : list of tuple or None
-        List of (ux, uy, uz) for each droplet. If None, zero velocity.
+        List of velocity tuples matching ndim. If None, zero velocity.
 
     Returns
     -------
-    C : ndarray (nx, ny, nz), float32
-    rho : ndarray (nx, ny, nz), float32
-    u : ndarray (3, nx, ny, nz), float32
+    C : ndarray, float32
+    rho : ndarray, float32
+    u : ndarray, float32
+        Shape: (2, nx, ny) in 2D, (3, nx, ny, nz) in 3D.
     """
+    is2d = _is_2d(nz)
+    ndim = 2 if is2d else 3
     n_drops = len(centers)
     if u_impacts is None:
-        u_impacts = [(0.0, 0.0, 0.0)] * n_drops
+        u_impacts = [(0.0,) * ndim] * n_drops
+
+    # Grid
+    grids = [np.arange(nx), np.arange(ny)]
+    if not is2d:
+        grids.append(np.arange(nz))
+    mesh = np.meshgrid(*grids, indexing='ij')
 
     # Build combined C field by taking element-wise max (handles overlap)
-    C = np.zeros((nx, ny, nz), dtype=np.float32)
+    C = np.zeros([nx, ny] if is2d else [nx, ny, nz], dtype=np.float32)
     u_masks = []  # (C_mask, u_impact) pairs
 
-    x = np.arange(nx)
-    y = np.arange(ny)
-    z = np.arange(nz)
-    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
-
     for k, (center, radius) in enumerate(zip(centers, radii)):
-        dist = np.sqrt((X - center[0])**2 + (Y - center[1])**2 + (Z - center[2])**2)
+        dist_sq = sum((M - center[d]) ** 2 for d, M in enumerate(mesh))
+        dist = np.sqrt(dist_sq)
         C_k = 0.5 + 0.5 * np.tanh(2.0 * (radius - dist) / xi)
         C_k = np.clip(C_k, 0.0, 1.0).astype(np.float32)
         # Use max to handle overlapping interfaces correctly
@@ -174,9 +214,9 @@ def create_multi_droplet_with_impact(nx, ny, nz, centers, radii,
     rho = (C * rho_l + (1.0 - C) * rho_g).astype(np.float32)
 
     # Velocity: each droplet contributes its impact velocity weighted by its own C
-    u = np.zeros((3, nx, ny, nz), dtype=np.float32)
+    u = np.zeros((ndim,) + C.shape, dtype=np.float32)
     for C_k, u_imp in u_masks:
-        for d in range(3):
+        for d in range(ndim):
             u[d] += u_imp[d] * C_k
 
     return C, rho, u

@@ -176,6 +176,30 @@ class ConningtonLeeWetting:
                 self.wall_normal[0, ix, iy, iz] = normal[0]
                 self.wall_normal[1, ix, iy, iz] = normal[1]
                 self.wall_normal[2, ix, iy, iz] = normal[2]
+        elif ndim == 2:
+            # Discrete neighbor-counting for 2D (D2Q9)
+            nx, ny = shape
+            boundary_coords = np.argwhere(boundary_np)
+
+            for coord in boundary_coords:
+                ix, iy = coord
+                normal = np.zeros(2)
+                count = 0
+                for i in range(1, Q):
+                    nix = ix + e[i, 0]
+                    niy = iy + e[i, 1]
+                    if 0 <= nix < nx and 0 <= niy < ny:
+                        if solid_np[nix, niy]:
+                            normal[0] -= e[i, 0]
+                            normal[1] -= e[i, 1]
+                            count += 1
+                if count > 0:
+                    normal /= count
+                    norm = np.sqrt(normal[0]**2 + normal[1]**2)
+                    if norm > 1e-10:
+                        normal /= norm
+                self.wall_normal[0, ix, iy] = normal[0]
+                self.wall_normal[1, ix, iy] = normal[1]
 
         self.wall_normal = self.wall_normal.to(self.device)
 

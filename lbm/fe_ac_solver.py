@@ -41,7 +41,7 @@ import torch
 import numpy as np
 import math
 
-from .lattice import D3Q19
+from .lattice import D2Q9, D3Q19
 from .fe_config import FEConfig
 from .fe_chemical_potential import compute_density
 from .boundary import BounceBack
@@ -87,7 +87,7 @@ class AllenCahnSolver:
         self.shape = shape
         self.ndim = cfg.dim
 
-        self.lattice = D3Q19()
+        self.lattice = D2Q9() if cfg.dim == 2 else D3Q19()
         self.cs2 = self.lattice.cs2
         Q = self.lattice.q
 
@@ -525,7 +525,7 @@ class AllenCahnSolver:
             # 2. Interface actually passes through (0.15 < phi < 0.85)
             # This prevents Dy blowup from thin film fluxes along ridge.
             n_w = self.wetting.wall_normal.to(self.dtype)
-            n_w_z = n_w[2].abs()
+            n_w_z = n_w[self.ndim - 1].abs()
             n_w_mag = (n_w * n_w).sum(dim=0).sqrt().clamp(min=1e-10)
             n_w_z_frac = n_w_z[mask] / n_w_mag[mask]
             is_top_surface = n_w_z_frac > 0.5
@@ -567,7 +567,7 @@ class AllenCahnSolver:
     # Mid-simulation droplet injection
     # ------------------------------------------------------------------
 
-    def inject_droplet(self, center, radius, xi, u_impact=(0.0, 0.0, -0.05)):
+    def inject_droplet(self, center, radius, xi, u_impact=None):
         """Inject a new droplet into the simulation at the current timestep.
 
         Modifies phi, f, g distributions to add the new droplet while
@@ -577,23 +577,27 @@ class AllenCahnSolver:
         Parameters
         ----------
         center : tuple of float
-            Droplet center (cx, cy, cz) in lattice units.
+            Droplet center in lattice units. 2D: (cx, cy), 3D: (cx, cy, cz).
         radius : float
             Droplet radius in lattice units.
         xi : float
             Interface thickness (should match solver's xi).
-        u_impact : tuple of float
-            Impact velocity (ux, uy, uz).
+        u_impact : tuple of float or None
+            Impact velocity. 2D: (ux, uy), 3D: (ux, uy, uz).
+            Defaults to zero velocity if not provided.
         """
         cfg = self.config
+        ndim = self.ndim
         shape = self.shape
 
+        if u_impact is None:
+            u_impact = (0.0,) * ndim
+
         # Build droplet C field on CPU then move to device
-        x = np.arange(shape[0])
-        y = np.arange(shape[1])
-        z = np.arange(shape[2])
-        X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
-        dist = np.sqrt((X - center[0])**2 + (Y - center[1])**2 + (Z - center[2])**2)
+        grids = [np.arange(s) for s in shape]
+        mesh = np.meshgrid(*grids, indexing='ij')
+        dist_sq = sum((M - center[d]) ** 2 for d, M in enumerate(mesh))
+        dist = np.sqrt(dist_sq)
         C_new = 0.5 + 0.5 * np.tanh(2.0 * (radius - dist) / xi)
         C_new = np.clip(C_new, 0.0, 1.0).astype(np.float32)
         C_new_t = torch.tensor(C_new, dtype=self.dtype, device=self.device)
@@ -623,7 +627,7 @@ class AllenCahnSolver:
         # Re-equilibrate f and g in the droplet core region
         # Blend velocity: use impact velocity where new droplet dominates,
         # keep existing velocity elsewhere
-        C_weight = C_new_t.unsqueeze(0)  # (1, nx, ny, nz)
+        C_weight = C_new_t.unsqueeze(0)  # (1, *grid)
         self.u = (1.0 - C_weight) * self.u + C_weight * u_new
 
         # Zero velocity in solid
@@ -636,7 +640,7 @@ class AllenCahnSolver:
         g_eq_new = self._g_equilibrium(self.P, self.u)
 
         # Replace distributions only at core nodes
-        core_expand = core_mask.unsqueeze(0)  # (1, nx, ny, nz)
+        core_expand = core_mask.unsqueeze(0)  # (1, *grid)
         self.f = torch.where(core_expand, f_eq_new, self.f)
         self.g = torch.where(core_expand, g_eq_new, self.g)
 
@@ -646,6 +650,8 @@ class AllenCahnSolver:
         # Clear phi_u_prev to avoid spurious source from injection
         self._phi_u_prev = None
 
-        print(f"  [inject] Droplet at ({center[0]:.0f},{center[1]:.0f},{center[2]:.0f}) "
-              f"R={radius:.1f} u=({u_impact[0]:.3f},{u_impact[1]:.3f},{u_impact[2]:.3f}) "
+        center_str = ",".join(f"{c:.0f}" for c in center)
+        vel_str = ",".join(f"{u:.3f}" for u in u_impact)
+        print(f"  [inject] Droplet at ({center_str}) "
+              f"R={radius:.1f} u=({vel_str}) "
               f"core_nodes={core_mask.sum().item()}")
