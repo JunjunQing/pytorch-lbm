@@ -1,0 +1,33 @@
+% Introduction section - Algorithm-focused version
+\section{Introduction}
+
+The lattice Boltzmann method (LBM) has established itself as a powerful numerical framework for computational fluid dynamics, offering natural advantages in handling complex geometries, interfacial flows, and parallel scalability \cite{succi2001lattice}. Unlike traditional Navier-Stokes solvers based on discretized partial differential equations, LBM evolves mesoscopic distribution functions on a lattice, recovering macroscopic quantities through moments. This mesoscopic approach simplifies the treatment of boundary conditions and enables elegant handling of multi-phase and multi-component flows.
+
+However, the overwhelming majority of high-performance LBM implementations rely on hand-written CUDA, OpenCL, or C++ code with explicit pointer arithmetic and carefully optimized memory access patterns \cite{geier2015cumulant, krause2012distributed}. While these implementations achieve excellent performance (often 85-95\% of peak GPU throughput), they come at the cost of significant development effort, limited hackability, and poor integration with modern machine learning workflows. Production codes such as waLBerla \cite{krause2012distributed} and OpenLB \cite{heiselberg2019aplf} require thousands of lines of boilerplate for even simple modifications.
+
+The emergence of deep learning frameworks, particularly PyTorch \cite{paszke2019pytorch}, has opened new possibilities for tensor-based scientific computing. PyTorch's automatic differentiation engine enables gradient-based optimization of physical parameters, its tensor operations map efficiently to GPU kernels, and its Python-native interface dramatically reduces development time. Recent work has explored PyTorch-based LBM implementations for single-phase flows \cite{lykov2022stability, palmer2022scalable}, demonstrating feasibility but typically achieving 60-70\% of optimized CUDA throughput.
+
+However, the extension to \textbf{multiphase flows using the Allen-Cahn (AC) phase-field model} in PyTorch remains essentially unexplored. The AC phase-field approach offers significant advantages over the Cahn-Hilliard model, including improved mass conservation and more stable behavior at high density ratios, but requires coupling two distribution functions (phase-field and hydrodynamics) with additional source terms and geometric corrections \cite{fakhari2017diffuse, lee2010lattice}. Implementing this in a tensor-based framework presents unique algorithmic challenges:
+
+\begin{enumerate}
+    \item \textbf{Memory efficiency}: AC-LBM requires storing two distribution functions ($h$ and $g$) per lattice direction, demanding careful memory management on commodity GPUs with limited VRAM.
+    \item \textbf{Operator fusion}: The collision-streaming pattern with source terms must be restructured to minimize kernel launch overhead.
+    \item \textbf{Geometric corrections}: Curved boundary treatment via volume penalization requires smooth fraction fields and gradient corrections that interact with the tensor computation graph.
+    \item \textbf{Numerical stability}: High density ratios (828:1 for water-air) require carefully balanced relaxation times and artificial free energy stabilization.
+\end{enumerate}
+
+This paper presents the first PyTorch implementation of the Allen-Cahn phase-field LBM for multiphase flows, with specific focus on simulating droplet impact on curved surfaces. The key algorithmic contributions are:
+
+\begin{enumerate}
+    \item \textbf{First PyTorch AC-LBM implementation} for multiphase flows with high density ratios, demonstrating feasibility of the tensor-based approach for this class of problems.
+
+    \item \textbf{Novel combination of volume penalization and geometric gradient amplification} within the tensor framework, enabling accurate curved boundary treatment and extreme contact angles ($162^\circ$) on commodity 6 GB VRAM GPUs.
+
+    \item \textbf{Comprehensive validation} against experimental data from Liu et al. \cite{liu2015symmetry} for asymmetric droplet spreading on cylindrical ridges, covering a wide curvature range ($R^* = 0.5$ to $3.5$) and Weber numbers ($We = 5.0$ to $15.0$).
+
+    \item \textbf{Demonstration of grid-converged results} ($N \geq 120$) with systematic analysis of the geometric amplification parameter, showing physically consistent behavior ($k \to 1$ as $R^* \to \infty$, $k \propto We^{0.80}$).
+
+    \item \textbf{Performance characterization} on NVIDIA CMP 30HX (6 GB), achieving approximately 2.8 million lattice-node updates per second (MLUPS) for $150^3$ grids, enabling systematic parameter sweeps within practical time frames.
+\end{enumerate}
+
+The paper is organized as follows: Section \ref{sec:method} describes the numerical method, including the AC-LBM formulation, volume penalization for curved boundaries, and the tensor-based implementation details. Section \ref{sec:results} presents validation results against experiments, grid convergence studies, and performance benchmarks. Section \ref{sec:conclusion} provides conclusions and discusses future directions.

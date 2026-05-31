@@ -1,0 +1,110 @@
+[
+  {
+    "amp": 0.2,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1597.0,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 0.3,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1595.3,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 0.4,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1596.0,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 0.5,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1597.5,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 0.6,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1596.4,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 0.8,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1596.3,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 1.0,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1596.3,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 1.2,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1650,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1598.8,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  },
+  {
+    "amp": 1.5,
+    "max_k": 1.6857142857142857,
+    "max_k_step": 1600,
+    "Dx": 59.0,
+    "Dy": 35.0,
+    "stable": true,
+    "elapsed_s": 1597.9,
+    "error_pct": 26.7,
+    "in_range": false,
+    "R_star": 2.76
+  }
+]

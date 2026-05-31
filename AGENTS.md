@@ -11,12 +11,43 @@ GPU-accelerated Allen-Cahn phase-field Lattice Boltzmann Method (LBM) simulation
 ### Dependencies
 
 ```bash
+# Use project virtual environment (avoids system package conflicts)
+source .venv/bin/activate
 pip install torch numpy matplotlib
+# CPU-only PyTorch: pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
 No requirements.txt or setup.py — direct imports via `sys.path.insert`.
 
-### Main sweep scripts (thesis parameter studies)
+### GPU Options
+
+#### Option 1: Remote Server (TencentCloud) — **Recommended for large simulations**
+
+SSH alias: `2698BV3TencentCloud` (configured in `~/.ssh/config`)
+
+```bash
+# [Once per WSL session] Start persistent SSH master connection (reuses socket)
+# This avoids re-authentication on every command. The master connection
+# stays alive for 4 hours after the last session closes (ControlPersist).
+ssh -Nf -o ServerAliveInterval=30 -o ServerAliveCountMax=3 2698BV3TencentCloud
+
+# Check socket status
+ls -la ~/.ssh/cm_root@1.13.160.139:60022
+
+# All subsequent SSH commands reuse the same TCP connection (near-instant)
+ssh 2698BV3TencentCloud "nvidia-smi"
+ssh 2698BV3TencentCloud "cd /mnt/qmingjun/pytorch_lbm && python3 scripts/run_thesis_sweep.py"
+```
+
+**Remote Server Details:**
+- **Host**: `1.13.160.139` (Tencent Cloud)
+- **Port**: `60022`
+- **User**: `root`
+- **GPU**: NVIDIA CMP 30HX (6GB VRAM) — same as original thesis setup
+- **Code dir**: `/mnt/qmingjun/pytorch_lbm/`
+- **SSH Key**: `~/.ssh/Debian-Server`
+
+#### Option 2: Local GPU (if available)
 
 ```bash
 # GPU 1 — NVIDIA (Studies 0/1/2/7)
@@ -29,13 +60,28 @@ bash scripts/run_thesis_bigblack.sh
 bash scripts/run_thesis_qingqing.sh
 ```
 
-Each `run_case()` call in sweep scripts runs a single simulation: sets up geometry, initializes the solver, loops `N` steps, and records k, Dx, Dy metrics.
+### Main sweep scripts (thesis parameter studies)
+
+```bash
+# Run on remote server
+ssh 2698BV3TencentCloud "cd /mnt/qmingjun/pytorch_lbm && python3 scripts/run_thesis_sweep.py"
+
+# Run locally (if GPU available)
+CUDA_VISIBLE_DEVICES=0 python3 scripts/run_thesis_sweep.py
+```
 
 ### Plotting
 
 ```bash
+source .venv/bin/activate
 python3 scripts/plot_thesis_results.py    # Data analysis figures
 python3 scripts/plot_thesis_droplets.py   # Droplet morphology snapshots
+```
+
+**Note:** Plot scripts read result files at import time and expect `results/thesis_sweep_results.json` and `results/thesis_k_history.json` locally. Download from remote first:
+```bash
+scp 2698BV3TencentCloud:/mnt/qmingjun/pytorch_lbm/results/thesis_sweep_results.json results/
+scp 2698BV3TencentCloud:/mnt/qmingjun/pytorch_lbm/results/thesis_k_history.json results/
 ```
 
 ### Key environment variables
@@ -55,9 +101,18 @@ python3 scripts/plot_thesis_droplets.py   # Droplet morphology snapshots
 | `fe_droplet.py` | `create_fe_droplet_with_impact()` — initializes phi field with tanh interface profile and impact velocity weighted by phi. |
 | `fe_wetting.py` | `ConningtonLeeWetting` — contact angle boundary condition with geometric gradient correction and curvature-dependent amplification (`geo_amplification`). |
 | `fe_chemical_potential.py` | Chemical potential, density, and pressure computations. |
-| `fe_measure.py` | Diagnostic measurements: film thickness, contact angles, spreading diameters (Dx, Dy). |
+| `fe_measure.py` | Diagnostic measurements: film thickness, contact angles, spreading diameters (Dx via `measure_spread_factor`). |
 | `lattice.py` | D2Q9 / D3Q19 lattice definitions (weights, velocities, opposite indices). |
 | `boundary.py` | `BounceBack` — standard and volume-penalized bounce-back boundary conditions. |
+
+### Key API nuances (verified)
+
+| Intended API | Actual API |
+|---|---|
+| `VTKWriter` | `write_vtk` (function, not class) |
+| `measure_spreading_diameter` | `measure_spread_factor` |
+| `set_initial_condition(C, u, rho)` | `init_fields(phi_init, u_init)` (no rho) |
+| `create_fe_droplet_with_impact(D0=..., U0=...)` | `create_fe_droplet_with_impact(radius=..., u_impact=(ux, uy))` |
 
 ### Solver timestep order (critical for correctness)
 
@@ -124,10 +179,15 @@ kappa = beta * xi^2 / 8
 M     = 0.02 / beta
 ```
 
-Standard v5 parameters: D0=45, tau=0.53, xi=4.0, U0=-0.05, We=7.9, theta=162°, rho_l/rho_g=828.
+Standard v5 parameters: D0=45, tau=0.53, xi=5.0, U0=-0.05, We=7.9, theta=162°, rho_l/rho_g=828.
 
 ## Documentation
 
 - `README.md` — Quick start and project overview
 - `DEVELOPMENT.md` — Comprehensive development docs (math model, algorithm, validation results, 726 lines)
 - `TASK_ASSIGNMENT.md` — Multi-GPU task distribution plan (131 cases across 3 machines)
+
+## Known Issues
+
+1. **`plot_thesis_results.py`** — `sorted()` failure on line 80 (None vs float comparison when data has missing `k_ridge` keys). First figure saved, rest fail.
+2. **`plot_thesis_droplets.py`** — Syntax error at line 410 (`except ValueError:` without valid try block). Will not run.
