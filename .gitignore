@@ -48,3 +48,6 @@ results/overnight_*.json
 results/overnight_*.log
 results/supplement_*.json
 results/validation_*.json
+
+# Paper (not distributed)
+paper/
