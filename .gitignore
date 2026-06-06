@@ -54,3 +54,18 @@ paper/
 
 # Simulation data (too large)
 results/
+
+# Unnecessary files
+.agents/
+.idea-stage/
+literature/
+refine-logs/
+review-stage/
+thesis/
+tools/
+DEVELOPMENT.md
+NARRATIVE_REPORT.md
+TASK_ASSIGNMENT.md
+opencode.json
+run_sweep.sh
+AGENTS.md
