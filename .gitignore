@@ -51,3 +51,6 @@ results/validation_*.json
 
 # Paper (not distributed)
 paper/
+
+# Simulation data (too large)
+results/
