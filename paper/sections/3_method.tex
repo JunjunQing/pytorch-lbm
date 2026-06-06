@@ -1,0 +1,50 @@
+\section{Method}\label{sec:method}
+
+\subsection{Allen-Cahn Lattice Boltzmann Formulation}
+
+We solve the incompressible Navier-Stokes equations coupled with the conservative Allen-Cahn equation for interface tracking. The flow field is solved using a velocity-based LB model, while the phase field $\phi$ is evolved via:
+
+\begin{equation}
+\frac{\partial \phi}{\partial t} + \nabla \cdot (\phi \mathbf{u}) = \nabla \cdot (M \nabla \mu) + \lambda_n
+\end{equation}
+
+where $M$ is the mobility, $\mu$ is the chemical potential, and $\lambda_n$ is a normalization source term. The chemical potential is derived from the Ginzburg-Landau free energy:
+
+\begin{equation}
+\mu = \beta \frac{\partial \psi}{\partial \phi} - \kappa \nabla^2 \phi
+\end{equation}
+
+where $\beta$ is the double-well depth, $\kappa$ is the interface stiffness, and $\psi(\phi) = \frac{1}{4}\phi^2(1-\phi)^2$ is the double-well potential.
+
+\subsection{Parameter Derivation}
+
+Key parameter relationships:
+
+\begin{align}
+\sigma &= \frac{\rho_l U_0^2 D_0}{\text{We}} \\
+\beta &= \frac{12\sigma}{\xi} \\
+\kappa &= \frac{\beta \xi^2}{8} \\
+M &= \frac{0.02}{\beta}
+\end{align}
+
+where $\sigma$ is surface tension, $\xi$ is interface thickness, and $U_0$ is the reference velocity.
+
+\subsection{Geometric Wetting Boundary Condition}
+
+For curved surfaces, we employ a geometric wetting BC with amplification correction. The wall boundary condition for the phase field is:
+
+\begin{equation}
+\phi_{\text{wall}} = \frac{1}{2} + \frac{1}{2}\text{sgn}(\cos\theta_{\text{eq}}) \cdot A_{\text{geo}}
+\end{equation}
+
+where $A_{\text{geo}}$ is the geometric amplification factor that compensates for the resistance of AC sharpening to contact angle corrections near curved walls. This factor is calibrated per resolution ($A_{\text{geo}} \propto N^{0.84}$) and typically ranges from 1.5--3.4.
+
+\subsection{Volume Penalization for Curved Boundaries}
+
+Curved boundaries are handled using continuous solid fraction field with 1-lattice-unit smoothing. At partial-solid nodes, the distribution function is interpolated:
+
+\begin{equation}
+f_{\text{new}} = (1-\varepsilon) f_{\text{streamed}} + \varepsilon f_{\text{bounced}}
+\end{equation}
+
+where $\varepsilon$ is the solid fraction. Smooth normals are computed from the fraction gradient.

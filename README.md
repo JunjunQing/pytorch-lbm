@@ -1,106 +1,134 @@
 # PyTorch-LBM: Allen-Cahn Phase-Field Lattice Boltzmann Method
 
-GPU-accelerated lattice Boltzmann simulation of droplet impact on curved surfaces.
+GPU-accelerated lattice Boltzmann simulation of droplet impact on curved surfaces with geometric amplification for wetting boundary conditions.
+
+## Features
+
+- Allen-Cahn phase-field LBM at 828:1 density ratio
+- Geometric amplification for accurate wetting on curved surfaces
+- Volume penalization for curved solid boundaries
+- Support for ridge, convex hemisphere, and concave cavity geometries
+- CUDA-accelerated via PyTorch
+
+## Installation
+
+```bash
+# Clone repository
+git clone https://github.com/JunjunQing/pytorch-lbm.git
+cd pytorch-lbm
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install numpy matplotlib
+
+# Verify GPU
+python3 -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
 
 ## Quick Start
 
 ```bash
-pip install torch numpy matplotlib
+# Run parameter sweep
+python3 scripts/run_thesis_sweep.py
 
-# GPU 1 — Studies 0/1/2/7 (NVIDIA CMP 30HX 6GB, ~6h)
-CUDA_VISIBLE_DEVICES=0 python3 scripts/run_thesis_sweep.py
+# Generate paper figures
+python3 scripts/paper_figures.py
 
-# GPU 2 — Studies 3a/3b/5 (AMD RX 6750 GRE 10GB, ~7.5h)
-bash scripts/run_thesis_bigblack.sh
-
-# GPU 3 — Studies 4a/4b/6 (Intel Arc A750 8GB, ~6.6h)
-bash scripts/run_thesis_qingqing.sh
+# Run comprehensive validation
+python3 scripts/run_validation.py
 ```
 
-## Current Parameters (v5, triple GPU)
+## Usage Example
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| D0 | 45 | Droplet diameter (lattice units) |
-| tau | 0.53 | Relaxation time |
-| xi | 4.0 | Interface thickness |
-| U0 | -0.05 | Impact velocity |
-| Re | 225 | Reynolds number |
-| Ma | 0.087 | Mach number |
-| VP | ON | Volume Penalization sub-grid boundary |
-| amp | 1.8 | Geometric amplification (ridge) |
+```python
+import sys
+sys.path.insert(0, '.')
+from lbm.fe_ac_solver import AllenCahnSolver
+from lbm.fe_config import FEConfig
+from lbm.fe_droplet import create_fe_droplet_with_impact
+from geometry.substrate import create_substrate_with_fraction
+
+# Configure simulation
+config = FEConfig(
+    nx=150, ny=150, nz=107,
+    rho_l=1.0, rho_g=1.0/828.0,
+    sigma=0.01424, xi=4.0,
+    tau_l=0.53, tau_g=0.53,
+    theta_eq=162.0, device='cuda',
+    max_steps=2000,
+)
+
+# Create solver with geometric amplification
+solver = AllenCahnSolver(
+    config, geo_amplification=1.5,
+    geometric_wetting=True,
+)
+
+# Set up geometry
+solid, fraction = create_substrate_with_fraction(
+    150, 150, 107, substrate_type='ridge',
+    R_star=1.0, R_d=22.5)
+solver.set_solid(solid, solid_fraction=fraction)
+
+# Initialize and run
+phi_init, u_init = create_fe_droplet_with_impact(
+    150, 150, 107, center=(75, 75, 80),
+    radius=22.5, xi=4.0, u_impact=(0, 0, -0.05))
+solver.init_fields(phi_init, u_init)
+
+for step in range(2000):
+    solver.step()
+```
 
 ## Project Structure
 
 ```
-pytorch_lbm/
+pytorch-lbm/
 ├── lbm/                    # Core LBM module
-│   ├── fe_ac_solver.py     # Main AC-LBM solver (VP + geometric wetting)
-│   ├── fe_config.py        # Configuration
+│   ├── fe_ac_solver.py     # Allen-Cahn solver
+│   ├── fe_config.py        # Configuration dataclass
 │   ├── fe_droplet.py       # Droplet initialization
-│   ├── fe_wetting.py       # Wetting boundary conditions
-│   ├── fe_chemical_potential.py
-│   ├── fe_measure.py
-│   ├── boundary.py / lattice.py
-├── geometry/               # Substrate geometry (flat/ridge/convex/concave)
-│   └── substrate.py        # Boolean mask + VP fraction field
-├── scripts/                # Simulation & plotting
-│   ├── run_thesis_sweep.py       # GPU 1: Studies 0/1/2/7 (31 cases)
-│   ├── run_thesis_bigblack.py    # GPU 2: Studies 3a/3b/5 (41 cases)
-│   ├── run_thesis_bigblack.sh    # Shell wrapper (ROCm env vars)
-│   ├── run_thesis_qingqing.py    # GPU 3: Studies 4a/4b/6 (36 cases)
-│   ├── run_thesis_qingqing.sh    # Shell wrapper (XPU verification)
-│   ├── plot_thesis_results.py    # Data analysis figures
-│   └── plot_thesis_droplets.py   # Droplet morphology figures
-├── results/                # Output data
-│   ├── thesis_sweep_results.json
-│   ├── thesis_k_history.json
-│   └── thesis_figures/     # Generated figures (PNG)
-└── io_utils/               # VTK writer, monitor
+│   ├── fe_wetting.py       # Wetting BC with geo_amplification
+│   └── fe_measure.py       # Diagnostics
+├── geometry/               # Substrate geometry
+│   └── substrate.py        # ridge/convex/concave/flat
+├── scripts/                # Simulation scripts
+│   ├── paper_figures.py    # Generate paper figures
+│   ├── run_validation.py   # Comprehensive validation
+│   └── run_overnight_sweep.py  # Full parameter sweep
+├── paper/                  # LaTeX source
+│   ├── main.tex
+│   └── sections/
+└── results/                # Simulation data (JSON)
 ```
 
-## Distributed Task Assignment
+## Parameters
 
-See [TASK_ASSIGNMENT.md](TASK_ASSIGNMENT.md) for the triple-GPU execution plan (108 cases, ~7.6h).
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| D₀ | 45 lu | Droplet diameter |
+| ξ | 4 lu | Interface thickness |
+| ρ_l/ρ_g | 828:1 | Density ratio |
+| τ_g | 0.53 | Hydrodynamic relaxation |
+| θ_eq | 90°--162° | Contact angle |
+| α_geo | 1.5 | Geometric amplification |
 
-## GPU Setup
+## Citation
 
-### NVIDIA CUDA (本机 30HX)
+If you use this code, please cite:
 
-```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
-python3 -c "import torch; print(torch.cuda.is_available())"
+```bibtex
+@article{qing2026geometric,
+  title={Geometric Amplification for Phase-Field LBM on Curved Surfaces},
+  author={Qing, Mingjun},
+  year={2026}
+}
 ```
 
-### AMD DirectML (bigblack 6750 GRE)
+## License
 
-```bash
-# 1. Install PyTorch
-pip install torch
-
-# 2. Install DirectML
-pip install torch-directml
-
-# 3. Verify
-python3 -c "import torch_directml; print(torch_directml.device())"
-```
-
-### Intel XPU (qingqing Arc A750)
-
-```bash
-# 1. Install Intel GPU drivers + oneAPI
-# See: https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux
-
-# 2. Install PyTorch XPU
-pip install torch torchvision --index-url https://download.pytorch.org/whl/xpu
-
-# 3. Verify
-python3 -c "import torch; print(torch.xpu.is_available(), torch.xpu.get_device_name(0))"
-```
-
-## References
-
-1. Liu et al. (2015) Phys. Fluids 27(12)
-2. Fakhari & Bolster (2017) J. Comput. Phys. 334
-3. Zhang et al. (2023) Phys. Rev. E — geometric wetting BC
-4. Lee & Liu (2010) J. Comput. Phys. 229(20) — free-energy phase-field
+MIT License

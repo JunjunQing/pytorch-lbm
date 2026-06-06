@@ -3,26 +3,22 @@
 *.pkl
 *.vtk
 
-# Archived outputs (11GB)
-_archived_outputs/
+# Generated results (too large for git)
+results/*.json
+results/*.log
 
-# Archived files
+# Archived outputs
+_archived_outputs/
 _archived_scripts/
 _archived_figures/
 _archived_data/
-
-# Generated results and logs
-results/
-logs/
-
-# Generated figures (not paper/figures which is tracked)
-figures/
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+venv/
 
 # IDE
 .vscode/
@@ -40,5 +36,15 @@ Thumbs.db
 *.out
 *.synctex.gz
 
+# Sensitive files
+opencode.json
+tools/llm_chat_mcp.py
+
 # Preview duplicates
 *_preview.png
+
+# Nightly sweep outputs
+results/overnight_*.json
+results/overnight_*.log
+results/supplement_*.json
+results/validation_*.json
