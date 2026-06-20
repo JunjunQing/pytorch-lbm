@@ -71,11 +71,11 @@ def fig1_phase_diagram():
     ax.axvspan(0, 5, alpha=0.05, color='0.3')
     ax.axvspan(5, 20, alpha=0.08, color='0.5')
     ax.axvspan(20, 25, alpha=0.05, color='0.3')
-    ax.text(2.5, 3.5, 'symmetric', fontsize=8, ha='center', color='0.3',
+    ax.text(2.5, 1.3, 'symmetric', fontsize=8, ha='center', color='0.3',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.7', alpha=0.7))
-    ax.text(11, 3.5, 'asymmetric', fontsize=8, ha='center', color='0.0', fontweight='bold',
+    ax.text(11, 3.3, 'asymmetric', fontsize=8, ha='center', color='0.0', fontweight='bold',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.0', alpha=0.7))
-    ax.text(21.5, 3.5, 'breakup', fontsize=8, ha='center', color='0.3',
+    ax.text(21, 3.3, 'breakup', fontsize=8, ha='center', color='0.3',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.7', alpha=0.7))
 
     ax.set_xlabel('Weber number $\\mathrm{We}$')
@@ -141,9 +141,9 @@ def fig3_amp_calibration():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
     # Data: amp sweep at R*=1.0, We=7.9, N=150
-    amp_vals = [0.0, 1.0, 1.5]
-    k_amp = [1.541, 2.290, 2.655]
-    k_amp_err = [0.035, 0.035, 0.035]
+    amp_vals = [0.0, 0.5, 1.0, 1.5]
+    k_amp = [1.541, 2.290, 2.290, 2.655]
+    k_amp_err = [0.035, 0.035, 0.035, 0.035]
 
     # Panel (a): k vs amp
     ax1.errorbar(amp_vals, k_amp, yerr=k_amp_err, fmt='o-', color=colors['blue'],
@@ -215,11 +215,11 @@ def fig4_resolution():
 
     # Converged line
     ax1.axhline(y=2.655, color=colors['blue'], linestyle=':', alpha=0.4)
-    ax1.text(82, 2.68, 'converged', fontsize=8, color=colors['blue'], alpha=0.6)
+    ax1.text(82, 2.70, 'converged', fontsize=8, color=colors['blue'], alpha=0.6)
 
     # Liu reference
     ax1.axhline(y=2.6, color=colors['green'], linestyle='--', linewidth=0.8, alpha=0.6)
-    ax1.text(185, 2.63, 'Liu', fontsize=8, color=colors['green'])
+    ax1.text(185, 2.56, 'Liu', fontsize=8, color=colors['green'])
 
     ax1.set_xlabel('Grid resolution $N$')
     ax1.set_ylabel('Asymmetry ratio $k_{max}$')
@@ -261,29 +261,40 @@ def fig4_resolution():
 def fig5_phase_diagram_heatmap():
     fig, ax = plt.subplots(1, 1, figsize=(6, 4.5))
 
-    # Complete phase diagram data
-    We_vals = [3.0, 5.0, 7.9, 10.0, 15.0, 20.0, 25.0, 30.0]
+    # Complete phase diagram data (N=150 overnight sweep)
+    We_vals = [3.0, 5.0, 7.9, 10.0, 15.0, 20.0, 30.0]
     R_vals = [0.5, 0.7, 1.0, 1.5, 2.0, 3.0]
 
     # Build matrix (R x We)
     k_matrix = np.full((len(R_vals), len(We_vals)), np.nan)
 
-    # Fill known data
-    # R*=1.0 sweep
-    k_r1 = {3.0: 1.356, 5.0: 1.585, 7.9: 2.029, 10.0: 2.273,
-            15.0: 2.581, 20.0: 2.286, 25.0: 1.951, 30.0: 1.778}
+    # R*=0.5 sweep (overnight phase4)
+    k_r05 = {3.0: 2.152, 7.9: 3.000, 15.0: 2.758, 30.0: 1.755}
+    for j, we in enumerate(We_vals):
+        if we in k_r05:
+            k_matrix[0, j] = k_r05[we]
+
+    # R*=1.0 sweep (overnight phase1)
+    k_r1 = {3.0: 1.615, 5.0: 1.971, 7.9: 2.655, 10.0: 3.074,
+            15.0: 3.296, 20.0: 2.657}
     for j, we in enumerate(We_vals):
         if we in k_r1:
-            k_matrix[2, j] = k_r1[we]  # R*=1.0 is index 2
+            k_matrix[2, j] = k_r1[we]
 
-    # R* sweep at We=7.9
-    k_we79 = {0.5: 2.286, 0.7: 2.273, 1.0: 2.029, 1.5: 1.865, 2.0: 1.811, 3.0: 1.326}
+    # R*=3.0 sweep (overnight phase4)
+    k_r30 = {3.0: 1.041, 7.9: 1.410, 15.0: 2.290, 30.0: 1.745}
+    for j, we in enumerate(We_vals):
+        if we in k_r30:
+            k_matrix[5, j] = k_r30[we]
+
+    # R* sweep at We=7.9 (validated R* sweep, α=1.5)
+    k_we79 = {0.5: 3.000, 0.7: 3.148, 1.0: 2.655, 1.5: 2.355, 2.0: 2.161, 3.0: 1.462}
     for i, R in enumerate(R_vals):
         if R in k_we79:
             k_matrix[i, 2] = k_we79[R]  # We=7.9 is index 2
 
     # Plot heatmap
-    im = ax.imshow(k_matrix, cmap='YlOrRd', aspect='auto', vmin=1.0, vmax=2.6,
+    im = ax.imshow(k_matrix, cmap='YlOrRd', aspect='auto', vmin=1.0, vmax=3.5,
                    interpolation='nearest')
 
     # Add text annotations
@@ -304,9 +315,10 @@ def fig5_phase_diagram_heatmap():
     cbar = fig.colorbar(im, ax=ax, label='$k_{max}$', shrink=0.8)
     cbar.ax.tick_params(labelsize=9)
 
-    ax.set_title('Phase Diagram: $k_{max}$ ($\\alpha_{geo}=1.5$, $N=80$)', fontsize=11)
+    ax.set_title('Phase Diagram: $k_{max}$ ($\\alpha_{geo}=1.5$, $N=150$)', fontsize=11)
 
     fig.tight_layout()
+    fig.subplots_adjust(top=0.88, bottom=0.10, left=0.12, right=0.88)
     fig.savefig(os.path.join(fig_dir, 'fig5_phase_diagram.pdf'))
     fig.savefig(os.path.join(fig_dir, 'fig5_phase_diagram.png'))
     plt.close(fig)

@@ -55,7 +55,7 @@ class AllenCahnSolver:
                  mu_drive=0.0, boundary_relax=0.3, interface_mode='allen-cahn',
                  ghost_scale=None, sharpen_reduce=0.8, mu_wall_scale=1.0,
                  geometric_wetting=False, direct_wetting=False,
-                 ch_wall_blend=0.0, geo_amplification=1.0):
+                 ch_wall_blend=0.0, geo_amplification=1.0, ac_scale=1.0):
         self.config = config
         # Support non-standard device objects (e.g. XPU string, custom devices)
         # which may not be torch.device instances.
@@ -81,6 +81,7 @@ class AllenCahnSolver:
         self.direct_wetting = direct_wetting
         self.ch_wall_blend = ch_wall_blend  # AC/CH blending near wall
         self._geo_amplification = geo_amplification
+        self._ac_scale = ac_scale
 
         cfg = config
         shape = cfg.grid_shape
@@ -213,13 +214,15 @@ class AllenCahnSolver:
         cfg = self.config
         if cfg.theta_eq != 90.0 and cfg.kappa > 0:
             mode = 'linear' if cfg.theta_eq > 130.0 or cfg.theta_eq < 50.0 else 'quadratic'
+            # Convert solid_fraction to numpy for wetting BC precomputation
+            sf_np = solid_fraction.cpu().numpy() if torch.is_tensor(solid_fraction) else solid_fraction
             self.wetting = ConningtonLeeWetting(
                 self.solid, self.lattice, cfg.phi_c, cfg.kappa,
                 sigma=cfg.sigma, theta_deg=cfg.theta_eq,
                 device=self.device, mode=mode,
                 ghost_scale=self._ghost_scale,
                 geo_amplification=self._geo_amplification,
-                solid_fraction=solid_fraction
+                solid_fraction=sf_np
             )
             print(f"  Wetting BC: theta_eq={cfg.theta_eq:.1f}deg, mode={mode}, "
                   f"geo_amp={self._geo_amplification}")
@@ -457,7 +460,7 @@ class AllenCahnSolver:
 
             W = cfg.xi
             lam = 4.0 * phi_safe * (1.0 - phi_safe) / W
-            sharpening = cs2 * lam.unsqueeze(0) * n
+            sharpening = cs2 * lam.unsqueeze(0) * n * self._ac_scale
             del n, lam
 
             if self.wetting is not None and hasattr(self.wetting, 'wall_weight'):
