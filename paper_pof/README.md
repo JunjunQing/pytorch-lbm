@@ -7,8 +7,12 @@ converted from the ICLR-format source in `../paper/`.
 
 - **Compiles clean**: 11 pages, two-column AIP layout, 0 errors, 0 undefined refs.
 - All 10 tables, 5 figures, and 24 AIP-style numbered references render correctly.
-- Content is shared with the ICLR version via `\input{../paper/sections/...}`
-  — single source of truth; edits to sections apply to both formats.
+- **Self-contained**: `sections/` is a snapshot of `../paper/sections/` (the
+  `paper/` directory is intentionally excluded from this git repo). When the
+  ICLR paper text changes, refresh the snapshot with:
+  `cp ../paper/sections/*.tex sections/`
+- Content is shared with the ICLR version — single source of truth; edits to
+  sections apply to both formats (then re-snapshot paper_pof).
 
 ## Build
 

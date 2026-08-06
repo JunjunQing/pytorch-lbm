@@ -1,0 +1,48 @@
+\section{Appendix: Energy-Based AC Resistance Analysis}\label{sec:appendix_ac_resistance}
+
+\subsection{Discrete AC Equation near Curved Walls}
+
+The Allen-Cahn equation in the phase-field LBM framework is discretized as:
+\begin{equation}\label{eq:app_ac}
+    \phi^{n+1} = \phi^n + \Delta t \left[ M \nabla^2 \phi - \frac{M}{\xi^2} \phi(1-\phi)(1-2\phi) + \nabla \cdot (\phi \mathbf{u}) \right]
+\end{equation}
+Near a curved solid wall, the geometric wetting BC modifies the gradient $\nabla\phi$ at the first fluid node. The AC sharpening source term in the normal direction is:
+\begin{equation}\label{eq:app_ac_source}
+    S_{AC,n} = \frac{M}{\xi^2} \phi(1-\phi)(1-2\phi) \cdot \mathbf{n}
+\end{equation}
+
+At the interface center ($\phi = 0.5$), the nonlinear term $\phi(1-\phi)(1-2\phi)$ vanishes, but the gradient $\nabla\phi$ is maximum. The net AC resistance arises from the \emph{gradient of the source term} rather than the source term itself.
+
+\subsection{Asymptotic Analysis}
+
+Consider a one-dimensional interface profile near a flat wall at $x=0$. The steady-state AC equation gives:
+\begin{equation}\label{eq:app_ac_1d}
+    M \frac{d^2\phi}{dx^2} = \frac{M}{\xi^2} \phi(1-\phi)(1-2\phi)
+\end{equation}
+The exact solution is $\phi(x) = \frac{1}{2}(1 + \tanh(x/\xi))$, with gradient $d\phi/dx = 1/(2\xi \cosh^2(x/\xi))$. At the interface center ($x=0$), the normal gradient is $\left.d\phi/dx\right|_{x=0} = 1/(2\xi)$. The AC source term at $x=0$ is zero (since $\phi=0.5$), but the \emph{curvature} of $\phi$ creates a restoring force that acts as a spring resisting deviations from the equilibrium profile.
+
+\subsection{Resistance Force Derivation}
+
+The AC sharpening resistance can be quantified by considering the energy barrier for deforming the interface. The free energy density is:
+\begin{equation}\label{eq:app_free_energy}
+    f(\phi) = \frac{\beta}{2} \phi^2(1-\phi)^2 + \frac{\kappa}{2} |\nabla\phi|^2
+\end{equation}
+
+For a geometric wetting correction that shifts the interface position by $\delta$ near the wall, the energy cost is $\Delta f \approx \kappa |\nabla\phi|^2 \delta^2 / \xi$. The resistance force (energy gradient) is $R_{AC} = \partial f/\partial \delta \approx \kappa |\nabla\phi|^2 \delta / \xi$. Using $\kappa = \beta\xi^2/8$ and $|\nabla\phi| \approx 1/(2\xi)$ at the interface: $R_{AC} \approx \beta\xi\delta/32$. The target gradient from the geometric wetting condition scales as $|g_n^{target}| \sim 2/\xi$. For strongly hydrophobic surfaces ($\theta_{eq} \gg 90^\circ$), the required correction $\delta$ is large, making $R_{AC}$ significant relative to $g_n^{target}$.
+
+\subsection{Physical Interpretation}
+
+The free energy functional for the Allen-Cahn model~\cite{allen1979microscopic, cahn1958free} is:
+\begin{equation}\label{eq:app_free_energy_full}
+    F[\phi] = \int \left[ \frac{\beta_{FE}}{2} \phi^2(1-\phi)^2 + \frac{\kappa}{2} |\nabla\phi|^2 \right] dV
+\end{equation}
+where $\beta_{FE} = 12\sigma/\xi$ is the bulk free energy parameter and $\kappa = \beta_{FE}\xi^2/8$ is the interface stiffness~\cite{jacqmin2000contact, lowengrub1998quasi}. For a geometric wetting correction that shifts the interface position by $\delta$ near the wall, the energy cost comes primarily from the gradient term. For a tanh interface profile, the gradient energy density is $\frac{\kappa}{8\xi^2} \text{sech}^4(x/\xi)$.
+
+Integrating over the interface region yields the energy change $\Delta F \approx \frac{\kappa}{6\xi} \delta^2 G(\delta/\xi)$, where $G$ is a geometric correction factor accounting for nonlinear profile deformation. The resistance force follows as $R_{AC} \approx \frac{\beta_{FE}\xi}{24} \delta G(\delta/\xi)$. Comparing with the measured value $\beta \approx 4.6$ indicates that dynamic effects during droplet impact amplify the AC resistance by approximately two orders of magnitude compared to the static estimate. This discrepancy is physically reasonable given the large interface deformations during impact ($\delta/\xi \sim 10$).
+
+The scaling law for the amplification factor follows from this analysis:
+The amplification magnitude follows the main-text scaling law (Eq.~\ref{eq:alpha_min}), $\alpha_{geo} = 1 + (\xi/R_{\mathrm{eff}})\,|\cot\theta_{eq}|$, with the dynamic resistance magnitude captured by $\beta \approx 4.6$ (see Supplementary calibration).
+
+\subsection{Sensitivity Analysis}
+
+ Qualitatively, the strongest sensitivity is to interface thickness $\xi$, which directly affects the AC resistance length scale.

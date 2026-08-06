@@ -1,0 +1,48 @@
+\section{Related Work}\label{sec:related}
+
+\paragraph{Lattice Boltzmann Methods for Multiphase Flows.}
+The lattice Boltzmann method (LBM) has emerged as a powerful tool for simulating multiphase flows due to its simplicity in handling complex boundary conditions and natural parallelization. Several multiphase models exist: the pseudopotential model \citep{shan1993lattice}, the color-gradient model \citep{gunstensen1991lattice}, the free-energy model \citep{swift1995lattice}, and the phase-field model \citep{lee2005lattice}. Among these, phase-field approaches based on the Allen-Cahn equation \citep{fakhari2017improved} have gained popularity for their ability to handle high density ratios with good stability.
+
+\paragraph{High Density Ratio LBM.}
+Achieving stable simulations at high density ratios (e.g., water/air at 828:1) remains challenging. Early index-function models were limited to density ratios below 10. \citet{inamuro2004lattice} achieved density ratios of 1000 using a free-energy approach with Poisson pressure correction. \citet{lee2003pressure} developed a pressure-evolution model reaching density ratios of 1000. More recently, \citet{fakhari2017improved} proposed an improved locality-preserving AC-LBM that supports density ratios up to 1000 with good stability. Our work builds on this formulation with additional stabilization for curved boundaries.
+
+\paragraph{Droplet Impact on Curved Surfaces.}
+The study of droplet dynamics on curved substrates has attracted significant attention. \citet{liu2015symmetry} experimentally demonstrated asymmetric bouncing on \emph{Echeveria} leaves, showing 40\% contact time reduction due to momentum asymmetry. Their lattice Boltzmann simulations (using the Lee-Liu free-energy model) confirmed the mechanism but were limited to a single Weber number. \citet{xu2022droplet} studied droplet impact on triangular ridges using pseudopotential LBM, finding that contact time reduction depends on the interplay between Weber number and ridge geometry. \citet{xiao2025numerical} investigated droplet impact and freezing on supercooled curved surfaces using thermal LBM with a pseudopotential model, providing orthogonal experimental design analysis of We, wall temperature, contact angle, and curvature ratio.
+
+\paragraph{Wetting Boundary Conditions on Curved Surfaces.}
+Accurate wetting boundary conditions are critical for simulating droplet-surface interactions. \citet{fakhari2017diffuse} proposed a geometric wetting approach for curved boundaries in phase-field LBM. \citet{connington2013lattice} developed a wetting model for curved surfaces using the free-energy approach. Recent work by \citet{sashko2024phase} extended phase-field LBM wetting to 3D curved geometries with interpolation-based mitigation of staircase approximations. \citet{compact2025stencil} proposed a compact-stencil wetting BC for 3D curved surfaces, eliminating nonphysical droplet sliding and detachment.
+
+\paragraph{Curved Wetting Boundary Conditions in Phase-Field LBM (2022--2026).}
+Several recent works have developed wetting boundary conditions (WBCs) for curved surfaces in the phase-field LBM framework. \citet{huang2022simplified} proposed a simplified geometric WBC for the conservative Allen-Cahn LBM using a hyperbolic tangent profile projection, validated at contact angles $\theta_{eq} = 45^\circ$--$135^\circ$ on cylindrical surfaces. \citet{zhang2022wetting} developed two geometric-formulation WBCs for modified phase-field LBM with large density ratios on flat substrates. \citet{huang2023simplified} extended the simplified scheme to a broader range of curved geometries. \citet{sashko2024phase} and \citet{compact2025stencil} addressed 3D curved geometries with interpolation-based and compact-stencil approaches, respectively. \citet{wang2024wetting} developed a WBC for three-dimensional curved geometries in the color-gradient LBM framework. \citet{ezzatneshan2021studying} applied the Allen-Cahn LBM to droplet impingement on hydrophilic and hydrophobic curved surfaces.
+
+Despite this progress, all existing curved WBCs are purely geometric and parameter-free. They assume that the geometric formulation exactly enforces the prescribed contact angle regardless of curvature or hydrophobicity. Consequently, their validation is limited to modest curvature ratios and contact angles ($\theta_{eq} \leq 135^\circ$, with most cases at $\theta_{eq} \leq 120^\circ$). None of these studies identify or address the competition between the AC sharpening term and the geometric wetting correction.
+
+\paragraph{Over-relaxation Techniques in LBM.}
+Over-relaxation of boundary gradients is a known technique in LBM. \citet{ding2007wetting} used extrapolation-based wetting BCs with relaxation factors for free-energy LBM. Extrapolation- and interpolation-based wetting treatments with tunable relaxation were also explored for free-energy and phase-field models. However, these works focus on flat or mildly curved surfaces and do not provide a systematic calibration or physical motivation grounded in the AC sharpening dynamics. Our work differs in three ways: (1) we identify the AC sharpening as the specific source of resistance on strongly curved hydrophobic surfaces, (2) we propose $\alpha_{geo}$ motivated by the AC-wetting balance (Eq.~\ref{eq:alpha_derivation}), and (3) we show that the optimal $\alpha_{geo}$ depends on $\theta_{eq}$, $R^*$, and $D_0/\xi$---a systematic calibration across regimes not previously available.
+
+\paragraph{Gap: The Untested Superhydrophobic Regime.}
+
+A systematic survey of wetting BC validation across the phase-field LBM literature reveals a critical gap. \Cref{tab:lit_validation} summarizes the maximum validated contact angle and geometry complexity for each major contribution.
+
+\begin{table}[htbp]
+\centering
+\caption{Validation coverage of wetting boundary conditions in phase-field LBM literature. No prior work validates the geometric WBC at superhydrophobic contact angles ($\theta_{eq} > 150^\circ$) on curved surfaces.}
+\label{tab:lit_validation}
+\begin{tabular}{c|c|c|c|c}
+\hline
+Reference & Max $\theta_{eq}$ & Curved? & Density ratio & Correction \\
+\hline
+\citet{fakhari2017diffuse} & $\sim 120^\circ$ & Cylinder & 1000:1 & Cubic surface energy \\
+\citet{huang2022simplified} & $135^\circ$ & Sphere, spheroid & 1000:1 & Geometric (tanh-based) \\
+\citet{zhang2022wetting} & $140^\circ$ & Flat only & 1000:1 & Geometric (virtual nodes) \\
+\citet{sashko2024phase} & $\sim 120^\circ$ & 3D arbitrary & 1000:1 & Interpolation-based \\
+\citet{compact2025stencil} & $\sim 120^\circ$ & 3D arbitrary & 1000:1 & Compact-stencil \\
+\hline
+\textbf{This work} & \textbf{$\mathbf{90^\circ}$--$\mathbf{162^\circ}$} & \textbf{Cyl. ridge, concave, convex} & \textbf{828:1} & \textbf{Geometric amplification ($\alpha_{geo}$)} \\
+\hline
+\end{tabular}
+\end{table}
+
+At $\theta_{eq} \leq 140^\circ$, the wall-normal gradient required by the geometric BC scales as $\cot\theta_{eq} \lesssim 2.75$, and the AC sharpening resistance is moderate. Consequently, all prior works report good agreement between simulated and prescribed contact angles within this validated range. However, no prior study has tested the geometric WBC at superhydrophobic contact angles ($\theta_{eq} > 150^\circ$) on curved surfaces, where $\cot\theta_{eq} > 3.5$ and the AC resistance becomes the dominant error source. Our work identifies this unexplored regime and provides the first systematic analysis of the AC-wetting under-correction.
+
+In summary, despite progress, no existing study provides: (a) identification of the AC sharpening term as the source of geometric BC inaccuracy on curved surfaces, (b) a physically motivated correction factor supported by scaling analysis, or (c) a comprehensive We $\times$ $R^*$ phase diagram for droplet impact on curved surfaces via Allen-Cahn LBM. Our work addresses all three.
