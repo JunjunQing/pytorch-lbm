@@ -261,37 +261,20 @@ def fig4_resolution():
 def fig5_phase_diagram_heatmap():
     fig, ax = plt.subplots(1, 1, figsize=(6, 4.5))
 
-    # Complete phase diagram data (N=150 overnight sweep, We=3-20 per paper)
+    # Complete phase diagram data (all 36 cells, N=150, alpha=1.5, theta=162;
+    # gaps filled 2026-08-06: results/phase_gaps_fill.json + phase_cell_fill.json)
     We_vals = [3.0, 5.0, 7.9, 10.0, 15.0, 20.0]
     R_vals = [0.5, 0.7, 1.0, 1.5, 2.0, 3.0]
 
-    # Build matrix (R x We)
-    k_matrix = np.full((len(R_vals), len(We_vals)), np.nan)
-
-    # R*=0.5 sweep (overnight phase4)
-    k_r05 = {3.0: 2.152, 7.9: 3.000, 15.0: 2.758}
-    for j, we in enumerate(We_vals):
-        if we in k_r05:
-            k_matrix[0, j] = k_r05[we]
-
-    # R*=1.0 sweep (overnight phase1)
-    k_r1 = {3.0: 1.615, 5.0: 1.971, 7.9: 2.655, 10.0: 3.074,
-            15.0: 3.296, 20.0: 2.657}
-    for j, we in enumerate(We_vals):
-        if we in k_r1:
-            k_matrix[2, j] = k_r1[we]
-
-    # R*=3.0 sweep (overnight phase4)
-    k_r30 = {3.0: 1.041, 7.9: 1.410, 15.0: 2.290}
-    for j, we in enumerate(We_vals):
-        if we in k_r30:
-            k_matrix[5, j] = k_r30[we]
-
-    # R* sweep at We=7.9 (validated R* sweep, alpha=1.5; values re-run 2026-08-05)
-    k_we79 = {0.5: 3.000, 0.7: 3.148, 1.0: 2.655, 1.5: 2.290, 2.0: 2.161, 3.0: 1.410}
-    for i, R in enumerate(R_vals):
-        if R in k_we79:
-            k_matrix[i, 2] = k_we79[R]  # We=7.9 is index 2
+    # Build matrix (R x We) — full 36-cell table
+    k_matrix = np.array([
+        [2.152, 2.724, 3.000, 3.069, 2.758, 2.220],  # R*=0.5
+        [1.857, 2.355, 3.148, 3.296, 3.000, 2.568],  # R*=0.7
+        [1.615, 1.971, 2.655, 3.074, 3.296, 2.657],  # R*=1.0
+        [1.488, 1.857, 2.290, 2.586, 2.455, 2.179],  # R*=1.5
+        [1.341, 1.649, 2.161, 2.448, 2.394, 2.073],  # R*=2.0
+        [1.041, 1.122, 1.410, 1.743, 2.290, 2.026],  # R*=3.0
+    ], dtype=float)
 
     # Plot heatmap
     im = ax.imshow(k_matrix, cmap='YlOrRd', aspect='auto', vmin=1.0, vmax=3.5,
