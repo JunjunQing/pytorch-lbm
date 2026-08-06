@@ -488,11 +488,26 @@ class ConningtonLeeWetting:
         # Apply amplification factor to overcome AC sharpening resistance.
         # The AC sharpening term pushes phi along the interface normal,
         # overriding the geometric correction. Amplification compensates.
-        if hasattr(self, '_geo_amplification') and self._geo_amplification > 1.0:
-            # Blend between current g_n and desired g_n with amplification
-            g_n_current = g_n
-            delta = g_n_desired - g_n_current
-            g_n_desired = g_n_current + delta * self._geo_amplification
+        # amp may be a scalar (>1.0 activates) or a per-node field (tensor
+        # matching the grid shape) for spatially adaptive amplification;
+        # nodes with amp <= 1.0 keep the un-amplified geometric correction.
+        amp = getattr(self, '_geo_amplification', None)
+        if amp is not None:
+            if torch.is_tensor(amp):
+                # Adaptive field: per-node amplification, broadcast over dims
+                amp_eff = amp.to(dtype=dtype, device=device)
+                g_n_current = g_n
+                delta = g_n_desired - g_n_current
+                g_n_desired = torch.where(
+                    amp_eff > 1.0,
+                    g_n_current + delta * amp_eff,
+                    g_n_desired,
+                )
+            elif amp > 1.0:
+                # Blend between current g_n and desired g_n with amplification
+                g_n_current = g_n
+                delta = g_n_desired - g_n_current
+                g_n_desired = g_n_current + delta * amp
 
         # Reconstruct corrected gradient: ∇φ_corrected = ∇φ_t + g_n_desired * n_w
         grad_corrected = g_t + g_n_desired.unsqueeze(0) * n_w
