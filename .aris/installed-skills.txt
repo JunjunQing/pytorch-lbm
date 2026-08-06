@@ -1,0 +1,4 @@
+repo_root	/home/qmingjun/projects/pytorch_lbm-main
+installed_at	2026-08-05
+upstream	wanshuiyin/Auto-claude-code-research-in-sleep
+upstream_version	v0.4.23

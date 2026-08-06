@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Phase 3: Convex hemisphere at N=150 (thesis resolution).
+
+Previous N=80 runs hit domain boundaries for convex at high amp.
+At N=150, domain is 150x150x~150, should have room for spreading.
+"""
+import sys, os, json, time
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import numpy as np
+import torch
+from lbm.fe_config import FEConfig
+from lbm.fe_ac_solver import AllenCahnSolver
+from lbm.fe_droplet import create_fe_droplet_with_impact
+from geometry.substrate import create_substrate_with_fraction
+
+torch.cuda.empty_cache()
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Device: {device}")
+if device == 'cuda':
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+
+D0 = 45.0; R_drop = D0 / 2.0
+rho_l = 1.0; rho_g = 1.0/828.0
+xi = 4.0; tau = 0.53; U0 = -0.05
+We = 7.9; theta_eq = 162.0; R_star = 1.0
+N_steps = 2000; n_base = 150
+
+sigma = rho_l * U0**2 * D0 / We
+beta = 12.0 * sigma / xi
+kappa = beta * xi**2 / 8.0
+M = 0.02 / beta
+R_g = abs(R_star) * R_drop
+nx, ny = n_base, n_base
+nz = int(R_g + 2 + R_drop + 2*R_drop + 15)
+nz = min(nz, 250)
+
+print(f"Grid: {nx}x{ny}x{nz}, R_drop={R_drop}, R_g={R_g}")
+print(f"sigma={sigma:.6f}, beta={beta:.6f}")
+
+def get_surface_height(solid, nx, ny, nz):
+    h = np.zeros((nx, ny), dtype=int)
+    for i in range(nx):
+        for j in range(ny):
+            for k in range(nz-1, -1, -1):
+                if solid[i, j, k]:
+                    h[i, j] = k; break
+    return h
+
+def measure_droplet(phi_np, solid_np, cx, cy):
+    mask = (phi_np > 0.5) & ~solid_np
+    if not mask.any():
+        return {}
+    coords = np.argwhere(mask)
+    Dx = float(coords[:, 0].max() - coords[:, 0].min() + 1)
+    Dy = float(coords[:, 1].max() - coords[:, 1].min() + 1)
+    Dz = float(coords[:, 2].max() - coords[:, 2].min() + 1)
+    volume = float(phi_np[~solid_np].sum())
+    aspect = Dz / max(Dx, Dy, 1.0)
+    k = Dx / Dy if Dy > 0 else 1.0
+    dr = np.sqrt((coords[:, 0] - cx)**2 + (coords[:, 1] - cy)**2)
+    spread_radius = float(dr.max())
+    z_max = float(coords[:, 2].max())
+    return {
+        'Dx': Dx, 'Dy': Dy, 'Dz': Dz, 'aspect_ratio': aspect,
+        'k': k, 'spread_radius': spread_radius,
+        'z_max': z_max, 'volume': volume,
+    }
+
+def run_convex(amp):
+    torch.cuda.empty_cache()
+    config = FEConfig(
+        nx=nx, ny=ny, nz=nz,
+        rho_l=rho_l, rho_g=rho_g,
+        sigma=sigma, xi=xi, beta=beta, kappa=kappa, M=M,
+        tau_l=tau, tau_g=tau, tau_h=tau+0.04,
+        theta_eq=theta_eq, device=device,
+        max_steps=N_steps, output_interval=N_steps+1,
+        g_force=(0.0, 0.0, 0.0),
+    )
+    solver = AllenCahnSolver(
+        config, dtype=torch.float32,
+        stab_mode='fakhari', boundary_relax=0.0,
+        geometric_wetting=(amp > 0), geo_amplification=amp,
+    )
+    solid, fraction = create_substrate_with_fraction(
+        nx, ny, nz, substrate_type='convex',
+        R_star=R_star, R_d=R_drop)
+    solver.set_solid(solid, solid_fraction=fraction)
+
+    solid_np = solver.solid.cpu().numpy()
+    height = get_surface_height(solid_np, nx, ny, nz)
+    cx, cy = nx/2.0, ny/2.0
+    ridge_top = height[nx//2, ny//2]
+    cz = ridge_top + 2.0 + R_drop
+    cz = min(cz, nz - R_drop - 2)
+
+    C_init, _, u_init = create_fe_droplet_with_impact(
+        nx, ny, nz, center=(cx, cy, cz), radius=R_drop, xi=xi,
+        rho_l=rho_l, rho_g=rho_g, u_impact=(0.0, 0.0, U0))
+    solver.init_fields(C_init, u_init)
+
+    history = []
+    max_aspect = 0.0; max_spread = 0.0
+    t0 = time.time()
+    for step in range(1, N_steps+1):
+        solver.step()
+        if step % 50 == 0:
+            phi_np = solver.phi.detach().cpu().numpy()
+            solid_np = solver.solid.cpu().numpy()
+            m = measure_droplet(phi_np, solid_np, cx, cy)
+            if m:
+                m['step'] = step
+                history.append(m)
+                max_aspect = max(max_aspect, m['aspect_ratio'])
+                max_spread = max(max_spread, m['spread_radius'])
+            if np.isnan(phi_np).any() or phi_np.max() < 0.01:
+                break
+
+    elapsed = time.time() - t0
+    mem_mb = torch.cuda.max_memory_allocated() / 1024 / 1024
+    torch.cuda.reset_peak_memory_stats()
+    stable = not torch.isnan(solver.phi).any() and solver.phi.max() > 0.01
+    del solver
+    torch.cuda.empty_cache()
+
+    return {
+        'amp': amp, 'geometry': 'convex',
+        'final': history[-1] if history else {},
+        'max_aspect': max_aspect, 'max_spread': max_spread,
+        'history': history, 'stable': stable,
+        'elapsed_s': round(elapsed, 1), 'mem_mb': round(mem_mb, 0),
+    }
+
+results = []
+for amp in [0.0, 1.5]:
+    print(f"\n--- convex amp={amp} (N=150) ---")
+    r = run_convex(amp)
+    results.append(r)
+    f = r['final']
+    tag = "OK" if r['stable'] else "FAIL"
+    print(f"  Dx={f.get('Dx',0):.0f} Dy={f.get('Dy',0):.0f} Dz={f.get('Dz',0):.0f}")
+    print(f"  spread_R={f.get('spread_radius',0):.1f} z_max={f.get('z_max',0):.1f}")
+    print(f"  aspect={f.get('aspect_ratio',0):.4f} k={f.get('k',0):.4f}")
+    print(f"  volume={f.get('volume',0):.1f} [{tag}] ({r['elapsed_s']}s, {r['mem_mb']:.0f}MB)")
+
+print("\n" + "="*60)
+print("PHASE 3 CONVEX N=150")
+print("="*60)
+for r in results:
+    f = r['final']
+    print(f"  amp={r['amp']:.1f}: aspect={f.get('aspect_ratio',0):.4f} "
+          f"spread={f.get('spread_radius',0):.1f} "
+          f"z_max={f.get('z_max',0):.0f} "
+          f"D={'×'.join([str(int(f.get(d,0))) for d in ['Dx','Dy','Dz']])}")
+
+save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         '..', 'results', 'phase3_convex_n150.json')
+with open(save_path, 'w') as f:
+    json.dump(results, f, indent=2, default=str)
+print(f"\nSaved to {save_path}")
