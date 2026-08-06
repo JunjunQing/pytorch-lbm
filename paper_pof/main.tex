@@ -1,0 +1,50 @@
+\documentclass[aip,reprint,numerical,floatfix]{revtex4-2}
+% Physics of Fluids (AIP Publishing) submission format.
+% Based on REVTeX 4.2 + AIP substyles (aip4-2.rtx).
+% Note: the official "aip-journals" class (Overleaf template wdmsvzfjgvyj)
+% can replace revtex4-2 at final submission without content changes.
+% REVTeX 4.2f: graphicx/hyperref are loaded with \usepackage, not as
+% class options (class options were removed in 4.2f).
+
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+
+% \Cref from cleveref is used throughout the section files; emulate it
+% with hyperref's \autoref (revtex4-2 does not ship cleveref).
+\newcommand{\Cref}[1]{\autoref{#1}}
+\newcommand{\cref}[1]{\autoref{#1}}
+
+\input{math_commands}
+
+\graphicspath{{figures/}}
+
+\begin{document}
+
+% REVTeX requires frontmatter commands (\title/\author/\affiliation) inside
+% the document environment (unlike standard classes).
+\title{Geometric Amplification for Phase-Field LBM on Curved Surfaces: \\
+Overcoming Allen-Cahn Sharpening Resistance in Wetting Boundary Conditions}
+
+\author{Anonymous Authors}
+\affiliation{Submitted to Physics of Fluids}
+
+\date{\today}
+
+\maketitle
+
+\input{../paper/sections/0_abstract}
+\input{../paper/sections/1_introduction}
+\input{../paper/sections/2_related_work}
+\input{../paper/sections/method_geo_amp}
+\input{../paper/sections/4_experiments}
+\input{../paper/sections/5_conclusion}
+
+\appendix
+\input{../paper/sections/appendix_ac_resistance}
+
+\bibliographystyle{aipnum4-2}
+\bibliography{references}
+
+\end{document}
