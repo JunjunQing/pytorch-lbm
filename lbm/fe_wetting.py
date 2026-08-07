@@ -304,6 +304,11 @@ class ConningtonLeeWetting:
 
         self.wall_weight = wall_weight.to(self.device)
         self.near_wall_mask = near_wall.to(self.device)
+        # Cached host flags: mask.any() in correct_gradient is a per-step
+        # device->host sync; masks are fixed after init, so hoist it here
+        # (keeps step() CUDA-graph capturable).
+        self._near_wall_any = bool(self.near_wall_mask.any().item())
+        self._is_boundary_any = bool(self.is_boundary.any().item())
 
     def _precompute_nsw_indices(self, solid_np, shape):
         """Precompute flat indices for boundary nodes and next-interior-wall nodes.
@@ -457,10 +462,12 @@ class ConningtonLeeWetting:
         """
         if near_wall_only:
             mask = self.near_wall_mask
+            if not self._near_wall_any:
+                return grad_phi
         else:
             mask = self.is_boundary
-        if not mask.any():
-            return grad_phi
+            if not self._is_boundary_any:
+                return grad_phi
 
         dtype = grad_phi.dtype
         device = grad_phi.device
