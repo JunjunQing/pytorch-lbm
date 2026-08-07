@@ -118,6 +118,7 @@ class AllenCahnSolver:
         self._e = self.lattice.e.to(device=self.device, dtype=dtype)
         self._w = self.lattice.w.to(device=self.device, dtype=dtype)
         self._opp = self.lattice.opp.to(self.device)
+        self._opp_list = self._opp.tolist()
         self._e_int = self.lattice.e.long().to(self.device)
         self._w_view = self._w.view(-1, *(1 for _ in shape))
 
@@ -192,6 +193,13 @@ class AllenCahnSolver:
     def set_solid(self, solid_mask: np.ndarray, solid_fraction: np.ndarray = None):
         self.solid = torch.tensor(solid_mask, dtype=torch.bool, device=self.device)
         self.bounce_back = BounceBack(self.lattice, self.solid, device=self.device)
+
+        # Cached CPU-side flags/indices: solid.any() and solid.nonzero() are
+        # device->host syncs that would fire every step; hoist them here so
+        # step() stays synchronization-free (and CUDA-graph capturable).
+        self._solid_any = bool(self.solid.any().item())
+        self._solid_idx = (self.solid.nonzero(as_tuple=False)
+                           if self._solid_any else None)
 
         # Volume penalization: compute partial-solid nodes from fraction field
         if solid_fraction is not None:
@@ -378,7 +386,7 @@ class AllenCahnSolver:
         # 1. Recover phi
         self.phi = self.f.sum(dim=0)
         self.phi = torch.clamp(self.phi, 0.0, 1.0)
-        if self.solid.any():
+        if self._solid_any:
             self.phi = torch.where(self.solid, torch.zeros_like(self.phi), self.phi)
 
         # 2. Density, chemical potential, gradients (fused gradient+laplacian)
@@ -434,7 +442,7 @@ class AllenCahnSolver:
         u_from_g = torch.einsum('qd,q...->d...', self._e, self.g)
         self.u = u_from_g + 0.5 * F_total / rho_eff.unsqueeze(0)
         del u_from_g
-        if self.solid.any():
+        if self._solid_any:
             self.u = torch.where(self.solid.unsqueeze(0),
                                  torch.zeros_like(self.u), self.u)
 
@@ -523,7 +531,7 @@ class AllenCahnSolver:
 
         # 9. Streaming (save only solid-node values for bounce-back)
         solid = self.solid
-        has_solid = solid.any()
+        has_solid = self._solid_any
         has_partial = self._has_partial
 
         if has_solid:
@@ -547,7 +555,7 @@ class AllenCahnSolver:
         # 10. Bounce-back (vectorized: no Python loop over Q)
         if has_solid:
             opp = self._opp  # (Q,)
-            solid_idx = solid.nonzero(as_tuple=False)  # (n_solid, ndim)
+            solid_idx = self._solid_idx  # cached at set_solid
             n_solid = solid_idx.shape[0]
             # f_pre_solid: (Q, n_solid) — pre-streaming values at solid nodes
             # After bounce-back: f[i, solid] = f_pre[opp[i], solid]
@@ -562,20 +570,25 @@ class AllenCahnSolver:
             eps = self._partial_eps  # (n_partial,)
             partial = self._partial_mask
             for i in range(Q):
-                j = self._opp[i].item()
+                j = self._opp_list[i]
                 f_str_partial = self.f[i][partial].clone()
                 g_str_partial = self.g[i][partial].clone()
                 self.f[i][partial] = (1.0 - eps) * f_str_partial + eps * f_pre_partial[j]
                 self.g[i][partial] = (1.0 - eps) * g_str_partial + eps * g_pre_partial[j]
             del f_pre_partial, g_pre_partial
 
-        # 11. Mass conservation
+        # 11. Mass conservation (all-GPU; no host sync so step() is
+        # CUDA-graph capturable; behavior identical to the scalar path)
         if self.phi_mass_init is not None:
-            mass_now = self.phi.sum().item()
-            if mass_now > 1e-6:
-                correction = self.phi_mass_init / mass_now
-                self.phi = torch.clamp(self.phi * correction, 0.0, 1.0)
-                self.f = self.f * correction
+            mass_now = self.phi.sum()
+            safe = mass_now.clamp(min=1e-6)
+            correction = torch.where(
+                mass_now > 1e-6,
+                self.phi_mass_init / safe,
+                torch.ones_like(mass_now),
+            )
+            self.phi = torch.clamp(self.phi * correction, 0.0, 1.0)
+            self.f = self.f * correction
 
         # 12. Boundary phi correction for contact angle enforcement
         if self.wetting is not None and self.boundary_relax > 0:
@@ -680,7 +693,7 @@ class AllenCahnSolver:
         self.phi = torch.clamp(self.phi, 0.0, 1.0)
 
         # Zero out phi in solid
-        if self.solid.any():
+        if self._solid_any:
             self.phi = torch.where(self.solid, torch.zeros_like(self.phi), self.phi)
 
         # Update density
@@ -693,7 +706,7 @@ class AllenCahnSolver:
         self.u = (1.0 - C_weight) * self.u + C_weight * u_new
 
         # Zero velocity in solid
-        if self.solid.any():
+        if self._solid_any:
             self.u = torch.where(self.solid.unsqueeze(0),
                                  torch.zeros_like(self.u), self.u)
 
