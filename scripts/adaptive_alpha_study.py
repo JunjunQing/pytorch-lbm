@@ -133,7 +133,7 @@ def get_surface_height(solid):
 
 
 def run_case(mode, a, b, theta_eq, n_base=150, n_steps=2000,
-             sigma=2.0, alpha_max=2.0, tag='', we=7.9):
+             sigma=2.0, alpha_max=2.0, tag='', we=7.9, alpha_val=1.5):
     """Run one elliptical-ridge impact case. mode: off | const | adaptive."""
     torch.cuda.empty_cache()
     nx = ny = n_base
@@ -152,7 +152,7 @@ def run_case(mode, a, b, theta_eq, n_base=150, n_steps=2000,
         amp_arg = 0.0
         geo_wet = False
     elif mode == 'const':
-        amp_arg = 1.5
+        amp_arg = alpha_val
         geo_wet = True
     else:  # adaptive
         amp_field = alpha_field(kappa, theta_eq, alpha_max)
@@ -238,6 +238,7 @@ def main():
     ap.add_argument('--b', type=float, default=54.4)
     ap.add_argument('--theta', type=float, default=162.0)
     ap.add_argument('--we', type=float, default=7.9)
+    ap.add_argument('--alpha', type=float, default=1.5)
     ap.add_argument('--tag', default='')
     args = ap.parse_args()
 
@@ -245,7 +246,7 @@ def main():
     r, hist = run_case(args.mode, args.a, args.b, args.theta,
                        n_base=args.n_base, n_steps=args.steps,
                        sigma=args.sigma, alpha_max=args.alpha_max, tag=tag,
-                       we=args.we)
+                       we=args.we, alpha_val=args.alpha)
     # save per-run history
     out = os.path.join(_project_root, 'results', f'adaptive_alpha_{tag}.json')
     with open(out, 'w') as f:
