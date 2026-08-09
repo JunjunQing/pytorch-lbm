@@ -61,7 +61,7 @@ The primary observable is the spreading asymmetry ratio
     k(t) = \frac{D_x(t)}{D_y(t)}, \qquad
     D_x = \max_i\{i : \phi_{i,j,k}>0.5\} - \min_i\{i : \phi_{i,j,k}>0.5\} + 1,
 \end{equation}
-with $D_y$ defined analogously along the ridge axis $y$; $k_{max}$ denotes the maximum of $k(t)$ over the simulation window. Because $D_x$ and $D_y$ are integer lattice extents of the $\phi=0.5$ isosurface, $k$ carries an intrinsic quantization of order $\pm 0.03$--$0.07$ at $N=150$; reported differences below this level should be read as resolution-limited.
+with $D_y$ defined analogously along the ridge axis $y$, where both extents are computed over fluid nodes only (solid nodes excluded); $k_{max}$ denotes the maximum of $k(t)$ over the simulation window. Because $D_x$ and $D_y$ are integer lattice extents of the $\phi=0.5$ isosurface, $k$ carries an intrinsic quantization of order $\pm 0.03$--$0.07$ at $N=150$; reported differences below this level should be read as resolution-limited.
 
 \begin{table}[htbp]
 \centering
