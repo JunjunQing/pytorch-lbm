@@ -36,7 +36,7 @@ In the gas-side region near the wall ($\phi \ll 1$), the nonlinear term lineariz
     \phi(n) = \phi(0) e^{-n/\xi}, \qquad \frac{\partial\phi}{\partial n}\Big|_w = -\frac{\phi(0)}{\xi}
 \end{equation}
 
-Equation~(\ref{eq:lin_sol}) expresses an intrinsic constraint of the AC equation: the wall-normal gradient and $\phi(0)$ are linked by the interface thickness $\xi$. The geometric wetting BC (Eq.~\ref{eq:geo_amp}) imposes a second, independent constraint. On a curved surface, the tangential gradient is nonzero: $|\nabla_t\phi| \sim \phi(0)/R_\mathrm{eff}$. Simultaneous satisfaction requires:
+Equation~(\ref{eq:lin_sol}) expresses an intrinsic constraint of the AC equation: the wall-normal gradient and $\phi(0)$ are linked by the interface thickness $\xi$. The geometric wetting BC (Eq.~\ref{eq:geo_amp}) imposes a second, independent constraint. On a curved surface, the tangential gradient is nonzero: $|\nabla_t\phi| \sim \phi(0)/R_\mathrm{eff}$, where $R_\mathrm{eff} \equiv R^*\,D_0/2$ is the local surface radius of the ridge. Simultaneous satisfaction requires:
 \begin{equation}\label{eq:compat}
     \frac{\phi(0)}{\xi} = \frac{\phi(0)}{R_\mathrm{eff}} \cdot \cot\theta_{eq}
     \quad\Longrightarrow\quad \xi = R_\mathrm{eff} \cdot \tan\theta_{eq}
@@ -46,17 +46,22 @@ For a flat surface ($R_\mathrm{eff} \to \infty$), Eq.~(\ref{eq:compat}) holds fo
 
 The resolution is to amplify the geometric BC: $\partial\phi/\partial n \to \alpha_{geo} \cdot \partial\phi/\partial n|_\mathrm{geom}$. The required amplification is set by the ratio of the imposed geometric gradient to the AC-compatible gradient. Since the geometric target gradient scales as $|\cos\theta_{eq}|/\sin\theta_{eq}$ (Eq.~\ref{eq:geo_amp}), the minimum amplification is:
 \begin{equation}\label{eq:alpha_min}
-    \alpha_\mathrm{min} = 1 + \frac{\xi}{R_\mathrm{eff}} \cdot |\cot\theta_{eq}|
+    \alpha_\mathrm{min} = 1 + C\,\frac{\xi}{R_\mathrm{eff}} \cdot |\cot\theta_{eq}|, \qquad C = 0.914
 \end{equation}
-where the absolute value reflects that only the magnitude of the correction matters; the sign of $\cot\theta_{eq}$ merely sets the direction of the wall-normal gradient (inward for $\theta_{eq}<90^\circ$, outward for $\theta_{eq}>90^\circ$) and does not affect the required correction magnitude.
-
-For our benchmark ($\xi = 4$, $R_\mathrm{eff} \approx 22.5$, $|\cot 162^\circ| = 3.08$): predicted value $\alpha_\mathrm{min} \approx 1.55$, consistent with the empirically optimal $\alpha_{geo} = 1.5$ within calibration uncertainty. Equation~(\ref{eq:alpha_min}) correctly predicts $\alpha_\mathrm{min} \to 1$ as $R_\mathrm{eff} \to \infty$ (flat limit) and as $\theta_{eq} \to 90^\circ$ ($|\cot\theta_{eq}| \to 0$). For $\theta_{eq} < 90^\circ$, $|\cot\theta_{eq}|$ is small, and more importantly the geometric correction itself is weak relative to the AC restoring force (the required wall-normal gradient is small for hydrophilic surfaces), so no amplification is needed---consistent with the empirical threshold $\theta_{eq} > 120^\circ$ (Sec.~\ref{sec:experiments}).
+where the absolute value reflects that only the magnitude of the correction matters; the sign of $\cot\theta_{eq}$ merely sets the direction of the wall-normal gradient (inward for $\theta_{eq}<90^\circ$, outward for $\theta_{eq}>90^\circ$) and does not affect the required correction magnitude. We treat Eq.~(\ref{eq:alpha_min}) as a heuristic scaling law rather than a first-principles prediction: the ``+1'' offset is the un-amplified baseline (no correction needed as $\xi/R_\mathrm{eff}\to 0$ or $\theta_{eq}\to 90^\circ$), the geometric factor $|\cot\theta_{eq}|$ follows from the target-gradient ratio in Eq.~(\ref{eq:geo_amp}), and the prefactor $C$ is calibrated at a single point ($R^*=1.0$, $\theta_{eq}=162^\circ$; see the prospective study below). At this calibration point ($\xi = 4$, $R_\mathrm{eff} = 22.5$, $|\cot 162^\circ| = 3.08$) the law yields $\alpha_\mathrm{min} \approx 1.55$, matching the empirically optimal $\alpha_{geo} = 1.5$; elsewhere it provides a smooth scaling guide, not a precise predictor. Equation~(\ref{eq:alpha_min}) correctly predicts $\alpha_\mathrm{min} \to 1$ as $R_\mathrm{eff} \to \infty$ (flat limit) and as $\theta_{eq} \to 90^\circ$ ($|\cot\theta_{eq}| \to 0$). For $\theta_{eq} < 90^\circ$, $|\cot\theta_{eq}|$ is small, and more importantly the geometric correction itself is weak relative to the AC restoring force (the required wall-normal gradient is small for hydrophilic surfaces), so no amplification is needed---consistent with the empirical threshold $\theta_{eq} > 120^\circ$ (Sec.~\ref{sec:experiments}).
 
 \textbf{Key distinction:} Existing geometric wetting BCs~\cite{fakhari2017diffuse,huang2022simplified,zhang2022wetting} assume the geometric constraint and the AC profile are compatible. We have shown this assumption leads to systematic under-correction on curved hydrophobic surfaces. The amplification factor $\alpha_{geo}$ compensates for this under-correction, validated by scaling analysis, ablation experiments, and calibration across the parameter space.
 
 A more detailed energy-based analysis of the AC resistance is provided in Appendix~\ref{sec:appendix_ac_resistance}.
 
 \subsection{Simulation Setup}
+
+The primary observable is the spreading asymmetry ratio
+\begin{equation}\label{eq:k_definition}
+    k(t) = \frac{D_x(t)}{D_y(t)}, \qquad
+    D_x = \max_i\{i : \phi_{i,j,k}>0.5\} - \min_i\{i : \phi_{i,j,k}>0.5\} + 1,
+\end{equation}
+with $D_y$ defined analogously along the ridge axis $y$; $k_{max}$ denotes the maximum of $k(t)$ over the simulation window. Because $D_x$ and $D_y$ are integer lattice extents of the $\phi=0.5$ isosurface, $k$ carries an intrinsic quantization of order $\pm 0.03$--$0.07$ at $N=150$; reported differences below this level should be read as resolution-limited.
 
 \begin{table}[htbp]
 \centering
@@ -129,6 +134,6 @@ The amplification effect is strongest at $\theta_{eq}=162^\circ$ ($\Delta k = +1
 
 \subsection{Implementation and Recommended Values}
 
-The optimal $\alpha_{geo} = 1.5$ is recommended as a robust default within the calibrated window: superhydrophobic curved surfaces ($\theta_{eq} > 120^\circ$, $\theta_{eq} \leq 162^\circ$, $R^* < 3.0$ at moderate $\mathrm{We}$, $D_0/\xi > 3.0$, $\xi \approx 4$). This value balances accuracy (bringing $k_{max}$ to within $2.1\%$ of the experimental benchmark $k \approx 2.6$ of \citet{liu2015symmetry} at $D/D_0=1.0$, versus $-40.7\%$ without amplification) with numerical stability. Beyond the calibrated window the factor must be reduced: at $\theta_{eq}=170^\circ$ ($k=4.68$) and at $\xi=3$ ($k=4.30$) with $\alpha_{geo}=1.5$ the correction over-shoots, and at $\theta_{eq}=175^\circ$ the simulation loses mass entirely ($-100\%$). Amplification factors above $2.0$ also produce nonphysical over-correction ($k=4.56$ at $\alpha_{geo}=2.0$). The recommended value of $1.5$ should be treated as an upper practical bound for the tested conditions; the scaling law (Eq.~\ref{eq:alpha_min}) can guide the choice for parameters outside the calibrated range.
+The optimal $\alpha_{geo} = 1.5$ is recommended as a robust default within the calibrated window: superhydrophobic curved surfaces ($\theta_{eq} > 120^\circ$, $\theta_{eq} \leq 162^\circ$, $R^* < 3.0$ at moderate $\mathrm{We}$, $D_0/\xi > 3.0$, $\xi \approx 4$). This value balances accuracy (bringing $k_{max}$ to within $0.2\%$ of the grid-converged value $k_\infty \approx 2.66$, versus $-11.5\%$ at $N=80$ and $-40.7\%$ without amplification; the converged magnitude is consistent with the spreading ratio reported by \citet{liu2015symmetry} at $D/D_0=1.0$, whose metric is a momentum ratio rather than a diameter ratio) with numerical stability. Beyond the calibrated window the factor must be reduced: at $\theta_{eq}=170^\circ$ ($k=4.68$) and at $\xi=3$ ($k=4.30$) with $\alpha_{geo}=1.5$ the correction over-shoots, and at $\theta_{eq}=175^\circ$ the simulation loses mass entirely ($-100\%$). Amplification factors above $2.0$ also produce nonphysical over-correction ($k=4.56$ at $\alpha_{geo}=2.0$). The recommended value of $1.5$ should be treated as an upper practical bound for the tested conditions; the scaling law (Eq.~\ref{eq:alpha_min}) can guide the choice for parameters outside the calibrated range.
 
 For weakly hydrophobic surfaces ($\theta_{eq} \leq 120^\circ$) or large curvature ratios ($R^* > 3$), standard geometric wetting BCs ($\alpha_{geo}=1.0$) remain sufficient. The amplification method is implemented as a single multiplicative factor in the existing wetting BC code, requiring no changes to the collision-streaming LBM kernel.

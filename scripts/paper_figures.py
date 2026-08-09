@@ -48,10 +48,6 @@ def fig1_phase_diagram():
     We_r1 = [3.0, 5.0, 7.9, 10.0, 15.0, 20.0]
     k_r1  = [1.615, 1.971, 2.655, 3.074, 3.296, 2.657]
 
-    # Data: R* sweep at We=7.9 (interpolated to common We)
-    R_vals = [0.5, 0.7, 1.0, 1.5, 2.0, 3.0]
-    k_R = [2.286, 2.273, 2.029, 1.865, 1.811, 1.326]
-
     # Plot k vs We for R*=1.0
     ax.plot(We_r1, k_r1, 'o-', color=colors['blue'], label='$R^*=1.0$', zorder=5)
 
@@ -67,15 +63,13 @@ def fig1_phase_diagram():
     ax.axhline(y=1.0, color=colors['gray'], linestyle='--', linewidth=0.8, alpha=0.6)
     ax.text(28, 1.02, 'flat', fontsize=8, color=colors['gray'], ha='right')
 
-    # Regime shading (B&W-friendly)
-    ax.axvspan(0, 5, alpha=0.05, color='0.3')
-    ax.axvspan(5, 20, alpha=0.08, color='0.5')
-    ax.axvspan(20, 25, alpha=0.05, color='0.3')
-    ax.text(2.5, 1.3, 'symmetric', fontsize=8, ha='center', color='0.3',
-            bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.7', alpha=0.7))
-    ax.text(11, 3.3, 'asymmetric', fontsize=8, ha='center', color='0.0', fontweight='bold',
-            bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.0', alpha=0.7))
-    ax.text(21, 3.3, 'breakup', fontsize=8, ha='center', color='0.3',
+    # Regime thresholds (per main text: k<1.2 symmetric, 1.2<=k<2.0 moderate,
+    # k>=2.0 highly asymmetric; no breakup claim)
+    ax.axhline(y=1.2, color='0.5', linestyle=':', linewidth=0.8, alpha=0.8)
+    ax.axhline(y=2.0, color='0.5', linestyle=':', linewidth=0.8, alpha=0.8)
+    ax.text(1.2, 1.1, 'k = 1.2', fontsize=7, color='0.4')
+    ax.text(1.2, 1.9, 'k = 2.0', fontsize=7, color='0.4')
+    ax.text(16.5, 3.4, 'highly asymmetric', fontsize=8, ha='center', color='0.3',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='0.7', alpha=0.7))
 
     ax.set_xlabel('Weber number $\\mathrm{We}$')
@@ -97,12 +91,12 @@ def fig1_phase_diagram():
 def fig2_curvature():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
-    # Data: N=150, α=1.5, We=7.9 (validated R* sweep)
+    # Data: N=150, α=1.5, We=7.9 (validated R* sweep; R*=1.5/3.0 re-run 2026-08-05)
     R_vals = [0.5, 0.7, 1.0, 1.5, 2.0, 3.0]
-    k_amp15 = [3.000, 3.148, 2.655, 2.355, 2.161, 1.462]
+    k_amp15 = [3.000, 3.148, 2.655, 2.290, 2.161, 1.410]
 
-    # α=0 baseline (from overnight N=150 sweep)
-    k_amp0 = [1.800, 1.743, 1.541, 1.571, 1.432, 1.293]
+    # α=0 baseline (r5_phase3; R*=0.7 and R*=2.0 have NO alpha=0 run — left NaN)
+    k_amp0 = [1.800, float('nan'), 1.541, 1.571, float('nan'), 1.293]
 
     # Panel (a): k vs R* with/without amp
     ax1.plot(R_vals, k_amp0, 's--', color=colors['gray'], label='$\\alpha_{geo}=0$', markersize=5)
@@ -114,7 +108,7 @@ def fig2_curvature():
     ax1.set_xlabel('Curvature ratio $R^*=D/D_0$')
     ax1.set_ylabel('Asymmetry ratio $k_{max}$')
     ax1.set_xlim(0.3, 3.3)
-    ax1.set_ylim(0.8, 2.6)
+    ax1.set_ylim(0.8, 3.3)
     ax1.legend(fontsize=9)
     ax1.set_title('(a) $k$ vs $R^*$ ($\\mathrm{We}=7.9$)', fontsize=11)
 
@@ -165,7 +159,8 @@ def fig3_amp_calibration():
 
     # Data: θ dependence (N=150, α=1.5 — overnight sweep)
     theta_vals = [90, 120, 140, 162]
-    k_theta_amp0 = [1.540, 1.540, 1.540, 1.540]
+    # alpha=0 has data ONLY at theta=162 (m1_amp_sweep); other angles NaN
+    k_theta_amp0 = [float('nan'), float('nan'), float('nan'), 1.540]
     k_theta_amp15 = [1.970, 2.091, 2.586, 2.655]
 
     # Panel (b): k vs θ
@@ -374,7 +369,7 @@ def fig6_schematic():
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='0.5', alpha=0.8))
     ax.text(15, 2.3, 'peak', fontsize=8, color='0.0', ha='center', fontweight='bold',
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='0.0', alpha=0.8))
-    ax.text(28, 1.3, 'breakup', fontsize=8, color='0.4', ha='center',
+    ax.text(28, 1.3, 'declining', fontsize=8, color='0.4', ha='center',
             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='0.6', alpha=0.8))
 
     ax.set_xlabel('Weber number $\\mathrm{We}$')
