@@ -156,12 +156,16 @@ def contact_band_stats(phi_np, fraction, kappa, alpha_np, theta_eq):
 
 
 def main():
+    global A, B
     ap = argparse.ArgumentParser()
     ap.add_argument('--mode', default='adaptive', choices=['adaptive', 'const', 'off'])
     ap.add_argument('--n-base', type=int, default=N_BASE)
     ap.add_argument('--steps', type=int, default=STEPS)
+    ap.add_argument('--a', type=float, default=A)
+    ap.add_argument('--b', type=float, default=B)
     args = ap.parse_args()
     mode = args.mode
+    A, B = args.a, args.b
     nx = ny = args.n_base
     nz = int(B + 2 * R_drop + 20)
 

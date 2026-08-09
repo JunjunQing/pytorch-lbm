@@ -82,7 +82,7 @@ $\alpha_{geo}$ & $k_{max}$ & Note \\
 
 Without amplification ($\alpha_{geo} = 0$), the AC sharpening term suppresses the wetting correction, resulting in $k \approx 1.5$ (\Cref{tab:alpha_sensitivity}). Introducing $\alpha_{geo} = 1.0$ (Zhang correction) increases $k$ to 2.29, while $\alpha_{geo} = 1.5$ achieves $k = 2.655$, consistent with the grid-converged value $k_\infty \approx 2.66$. At $\alpha_{geo} = 2.0$, the correction is excessive ($k = 4.56$), confirming that $\alpha_{geo} = 1.5$ provides the optimal balance between accuracy and stability.
 
-Notably, $\alpha_{geo} = 0.5$ and $\alpha_{geo} = 1.0$ yield identical $k_{max}$ values ($k = 2.290$), indicating a saturation plateau: amplification in the range $0.5 \leq \alpha \leq 1.0$ produces the same effective wetting state, i.e., the geometric correction is already fully effective at $\alpha \approx 0.5$ for this configuration and further amplification up to $\alpha=1.0$ changes nothing. Beyond $\alpha \approx 1.2$ the asymmetry continues to increase, so the plateau does not cap the achievable effect.
+Notably, $\alpha_{geo} = 0.5$ and $\alpha_{geo} = 1.0$ yield identical $k_{max}$ values ($k = 2.290$). We interpret this as a saturation plateau: below the amplification threshold $\alpha \lesssim 1.2$ the corrected gradient is still partially overwritten by the AC sharpening step, so $\alpha \in [0.5, 1.0]$ leaves the converged contact-line state unchanged (an implementation-level effect of the discrete boundary stencil rather than a physical transition); above $\alpha \approx 1.2$ the correction dominates and $k_{max}$ rises with $\alpha$. Beyond $\alpha \approx 1.2$ the asymmetry continues to increase, so the plateau does not cap the achievable effect.
 
 \subsection{Prospective Validation on Held-Out Parameter Combinations}\label{subsec:prospective}
 
@@ -151,7 +151,7 @@ The asymptotic value is $k_\infty \approx 2.66 \pm 0.04$. Grid convergence is ac
 
 \subsection{Validation Against Liu et al. (2015)}
 
-We compare our results with the experimental and LBM data of \citet{liu2015symmetry} in \Cref{tab:liu_comparison}.
+We compare our results with the experimental and LBM data of \citet{liu2015symmetry} (their spreading-ratio measurements at matched impact conditions; see the original paper for the data points) in \Cref{tab:liu_comparison}.
 
 \begin{table}[htbp]
 \centering
