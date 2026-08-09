@@ -13,7 +13,7 @@ Using $\alpha_{geo} = 1.5$, we construct a two-dimensional phase diagram of the 
 
 \begin{table}[htbp]
 \centering
-\caption{Phase diagram: $k_{max}$ as a function of $\mathrm{We}$ and $R^*$ ($\alpha_{geo} = 1.5$, $\theta_{eq}=162^\circ$, $N=150$, 2000-step windowed maximum). All 36 cells are computed. Repeat runs of nominally identical cases (e.g. $R^*=1.5$, $\mathrm{We}=7.9$) differ by up to $\pm 3\%$ across batches due to the integer-extent quantization of $k$ (Eq.~\ref{eq:k_definition}); the values shown are the 2026-08 re-runs. The complete table with run provenance is given in the Supplementary Material.}
+\caption{Phase diagram: $k_{max}$ as a function of $\mathrm{We}$ and $R^*$ ($\alpha_{geo} = 1.5$, $\theta_{eq}=162^\circ$, $N=150$, 2000-step windowed maximum). All 36 cells are computed. Repeat runs of nominally identical cases (e.g. $R^*=1.5$, $\mathrm{We}=7.9$) differ by up to $\sim 4\%$ across batches due to the integer-extent quantization of $k$ (Eq.~\ref{eq:k_definition}); the values shown are the 2026-08 re-runs. The complete table with run provenance is given in the Supplementary Material.}
 \label{tab:phase_diagram}
 \begin{tabular}{c|cccccc}
 \hline
@@ -80,7 +80,7 @@ $\alpha_{geo}$ & $k_{max}$ & Note \\
 \end{tabular}
 \end{table}
 
-Without amplification ($\alpha_{geo} = 0$), the AC sharpening term suppresses the wetting correction, resulting in $k \approx 1.5$ (\Cref{tab:alpha_sensitivity}). Introducing $\alpha_{geo} = 1.0$ (Zhang correction) increases $k$ to 2.29, while $\alpha_{geo} = 1.5$ achieves $k = 2.66$, within $2.1\%$ of the experimental benchmark. At $\alpha_{geo} = 2.0$, the correction is excessive ($k = 4.56$), confirming that $\alpha_{geo} = 1.5$ provides the optimal balance between accuracy and stability.
+Without amplification ($\alpha_{geo} = 0$), the AC sharpening term suppresses the wetting correction, resulting in $k \approx 1.5$ (\Cref{tab:alpha_sensitivity}). Introducing $\alpha_{geo} = 1.0$ (Zhang correction) increases $k$ to 2.29, while $\alpha_{geo} = 1.5$ achieves $k = 2.655$, consistent with the grid-converged value $k_\infty \approx 2.66$. At $\alpha_{geo} = 2.0$, the correction is excessive ($k = 4.56$), confirming that $\alpha_{geo} = 1.5$ provides the optimal balance between accuracy and stability.
 
 Notably, $\alpha_{geo} = 0.5$ and $\alpha_{geo} = 1.0$ yield identical $k_{max}$ values ($k = 2.290$), indicating a saturation plateau: amplification in the range $0.5 \leq \alpha \leq 1.0$ produces the same effective wetting state, i.e., the geometric correction is already fully effective at $\alpha \approx 0.5$ for this configuration and further amplification up to $\alpha=1.0$ changes nothing. Beyond $\alpha \approx 1.2$ the asymmetry continues to increase, so the plateau does not cap the achievable effect.
 
@@ -106,7 +106,7 @@ $R^*$ & $\theta_{eq}$ & We & $k_{max}$ ($\alpha=0$ / $\alpha=1.5$) & $\Delta k$ 
 \end{tabular}
 \end{table}
 
-The results demonstrate that $\alpha_{geo}=1.5$ consistently improves $k_{max}$ over $\alpha=0$ wherever the wetting BC is the limiting factor, confirming its robustness as a default on unseen parameters. Three patterns emerge:
+The results demonstrate that $\alpha_{geo}=1.5$ consistently improves $k_{max}$ over $\alpha=0$ wherever the wetting BC is the limiting factor, confirming its robustness as a default on unseen parameters. (An earlier draft reported predictions from the scaling law Eq.~(\ref{eq:alpha_min}) for these cases; the predicted values are 1.14--1.40 over this range, within the 1.1--1.5 window stated above, but the experimental $\alpha=1.5$ runs shown here are the primary evidence.) Three patterns emerge:
 
 \begin{enumerate}
     \item \textbf{For moderate-to-high $\theta_{eq}$ ($\geq 140^\circ$) and small-to-moderate $R^*$ ($\leq 1.5$)}: $\alpha=1.5$ improves $k_{max}$ by $+31$--$+33\%$ over $\alpha=0$, consistent with the curvature-dependent under-correction identified in Sec.~\ref{subsec:curvature}.
@@ -142,7 +142,7 @@ The solution converges at $N \geq 100$, with $k_\infty \approx 2.66 \pm 0.04$. T
 \begin{itemize}
     \item $N=80$: $k=2.355$ (under-resolved, $-11.5\%$ vs converged)
     \item $N=100$: $k=2.586$ (first reliable result, $-2.8\%$)
-    \item $N=120$: $k=2.586$ (stable, $-0.5\%$)
+    \item $N=120$: $k=2.586$ (stable, $-2.8\%$)
     \item $N=150$: $k=2.655$ ($-0.2\%$)
     \item $N=180$: $k=2.655$ ($-0.2\%$, \textbf{converged})
 \end{itemize}
@@ -185,7 +185,7 @@ To ensure the correctness of the solver, we perform standard code verification t
     \item \textbf{Mass conservation}: A static droplet ($R^*/D_0 = 0.22$, no impact velocity) is simulated for 200 steps on a flat surface at $N=60$. The fluid mass deviates by less than $0.1\%$, confirming that the AC-LBM formulation preserves mass to within numerical precision.
     \item \textbf{Energy dissipation}: The AC free energy is monitored for a random initial condition at $N=40$. The energy decreases monotonically by $66.8\%$ over 300 steps, consistent with the variational structure of the AC equation.
     \item \textbf{Symmetry}: A droplet impacting a flat surface at $N=80$ produces $k \approx 1.1$, confirming that no significant spurious asymmetry is introduced by the numerical method.
-    \item \textbf{Manufactured solutions (spatial)}: A prescribed periodic $\phi(\mathbf{x})$ with known gradient was applied to verify the accuracy of the discrete gradient operator. The $L_2$ norm error converged at measured order $\approx 3.0$ ($1.33\times10^{-3}\to 2.09\times10^{-5}$ over $N=32\to 128$; data in results/mms\_spatial.json), consistent with the central-difference-type stencil.
+    \item \textbf{Manufactured solutions (spatial)}: A prescribed periodic $\phi(\mathbf{x})$ with known gradient was applied to verify the accuracy of the discrete gradient operator. The $L_2$ norm error converged at measured order $\approx 3.0$ ($1.33\times10^{-3}\to 2.09\times10^{-5}$ over $N=32\to 128$; data in results/mms\_spatial.json), reported as the measured value.
     \item \textbf{Manufactured solutions (temporal)}: A time-dependent source term with an analytic solution was applied to verify temporal convergence of the LBM collision-streaming scheme. At the tested spatial resolution, the temporal error was dominated by the BGK collision truncation ($O(\Delta t^2)$), and the convergence rate deviated from the expected second order due to the relatively large time step required for production-scale simulations. The temporal MMS failure is a well-understood consequence of the BGK approximation at practical time step sizes and does not affect the spatial accuracy of the steady-state quantities (contact angle, spreading ratio) reported in this work.
 \end{enumerate}
 

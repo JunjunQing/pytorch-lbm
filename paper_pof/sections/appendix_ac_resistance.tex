@@ -38,10 +38,10 @@ The free energy functional for the Allen-Cahn model~\cite{allen1979microscopic, 
 \end{equation}
 where $\beta_{FE} = 12\sigma/\xi$ is the bulk free energy parameter and $\kappa = \beta_{FE}\xi^2/8$ is the interface stiffness~\cite{jacqmin2000contact, lowengrub1998quasi}. For a geometric wetting correction that shifts the interface position by $\delta$ near the wall, the energy cost comes primarily from the gradient term. For a tanh interface profile, the gradient energy density is $\frac{\kappa}{8\xi^2} \text{sech}^4(x/\xi)$.
 
-Integrating over the interface region yields the energy change $\Delta F \approx \frac{\kappa}{6\xi} \delta^2 G(\delta/\xi)$, where $G$ is a geometric correction factor accounting for nonlinear profile deformation. The resistance force follows as $R_{AC} \approx \frac{\beta_{FE}\xi}{24} \delta G(\delta/\xi)$. Comparing with the measured value $\beta \approx 4.6$ indicates that dynamic effects during droplet impact amplify the AC resistance by approximately two orders of magnitude compared to the static estimate. This discrepancy is physically reasonable given the large interface deformations during impact ($\delta/\xi \sim 10$).
+Integrating over the interface region yields the energy change $\Delta F \approx \frac{\kappa}{6\xi} \delta^2 G(\delta/\xi)$, where $G$ is a geometric correction factor accounting for nonlinear profile deformation. This energy argument provides a qualitative mechanism for the AC resistance; a quantitative prediction would require the dynamic interface state during impact, which is not modeled here.
 
 The scaling law for the amplification factor follows from this analysis:
-The amplification magnitude follows the main-text scaling law (Eq.~\ref{eq:alpha_min}), $\alpha_{geo} = 1 + (\xi/R_{\mathrm{eff}})\,|\cot\theta_{eq}|$, with the dynamic resistance magnitude captured by $\beta \approx 4.6$ (see Supplementary calibration).
+The amplification magnitude follows the main-text scaling law (Eq.~\ref{eq:alpha_min}), $\alpha_{geo} = 1 + C(\xi/R_{\mathrm{eff}})\,|\cot\theta_{eq}|$ with $C = 0.914$ calibrated at $R^*=1.0$, $\theta_{eq}=162^\circ$ (see the Supplementary Material).
 
 \subsection{Sensitivity Analysis}
 

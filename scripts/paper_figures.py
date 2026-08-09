@@ -137,19 +137,15 @@ def fig3_amp_calibration():
     # Data: amp sweep at R*=1.0, We=7.9, N=150
     amp_vals = [0.0, 0.5, 1.0, 1.5]
     k_amp = [1.541, 2.290, 2.290, 2.655]
-    k_amp_err = [0.035, 0.035, 0.035, 0.035]
 
     # Panel (a): k vs amp
-    ax1.errorbar(amp_vals, k_amp, yerr=k_amp_err, fmt='o-', color=colors['blue'],
-                 capsize=4, zorder=5)
+    ax1.plot(amp_vals, k_amp, 'o-', color=colors['blue'], zorder=5)
     ax1.axvline(x=1.5, color=colors['red'], linestyle=':', alpha=0.6)
     ax1.text(1.52, 2.85, 'recommended $\\alpha_{geo}=1.5$', fontsize=8, color=colors['red'],
              ha='left', va='top',
              bbox=dict(boxstyle='round,pad=0.15', facecolor='white', edgecolor='red', alpha=0.8))
 
     # Liu 2015 reference
-    ax1.axhline(y=2.6, color=colors['green'], linestyle='--', linewidth=0.8, alpha=0.6)
-    ax1.text(0.05, 2.63, 'Liu 2015: $k=2.6$', fontsize=8, color=colors['green'])
 
     ax1.set_xlabel('Amplification factor $\\alpha_{geo}$')
     ax1.set_ylabel('Asymmetry ratio $k_{max}$')
@@ -193,63 +189,33 @@ def fig4_resolution():
     # Data: Grid convergence at amp=1.5, R*=1.0, We=7.9 (N=150 validated)
     N_vals = [80, 100, 120, 150, 180]
     k_amp15 = [2.355, 2.586, 2.586, 2.655, 2.655]
-    # Error bars from grid convergence spread
-    k_amp15_err = [0.035, 0.035, 0.035, 0.035, 0.035]
+    k_inf = 2.66  # converged value (N>=150 plateau), internal benchmark
+    # No error bars: run-to-run spread is the integer-extent quantization
+    # half-width (~0.035 = (77/29 - 75/29)/2), not measurement uncertainty.
 
     # Panel (a): k vs N
-    ax1.errorbar(N_vals, k_amp15, yerr=k_amp15_err, fmt='o-', color=colors['blue'],
-                 capsize=4, zorder=5, label='$\\alpha_{geo}=1.5$')
-
-    # D0/ξ annotation: D0 scales with N (45 lu at N=150)
-    D0_xi = [n * 45.0 / 150.0 / 4.0 for n in N_vals]
-    ax1_twin = ax1.twiny()
-    ax1_twin.set_xlim(ax1.get_xlim())
-    ax1_twin.set_xticks(N_vals)
-    ax1_twin.set_xticklabels([f'~{d:.1f}' for d in D0_xi])
-    ax1_twin.set_xlabel('$D_0/\\xi$ (approx.)', fontsize=9)
+    ax1.plot(N_vals, k_amp15, 'o-', color=colors['blue'],
+             zorder=5, label='$\\alpha_{geo}=1.5$')
 
     # Converged line
-    ax1.axhline(y=2.655, color=colors['blue'], linestyle=':', alpha=0.4)
-    ax1.text(82, 2.70, 'converged', fontsize=8, color=colors['blue'], alpha=0.6)
-
-    # Liu reference
-    ax1.axhline(y=2.6, color=colors['green'], linestyle='--', linewidth=0.8, alpha=0.6)
-    ax1.text(185, 2.56, 'Liu', fontsize=8, color=colors['green'])
+    ax1.axhline(y=k_inf, color=colors['blue'], linestyle=':', alpha=0.4)
+    ax1.text(82, k_inf + 0.04, 'converged $k_\\infty$', fontsize=8,
+             color=colors['blue'], alpha=0.6)
 
     ax1.set_xlabel('Grid resolution $N$')
     ax1.set_ylabel('Asymmetry ratio $k_{max}$')
     ax1.set_xlim(60, 200)
     ax1.set_ylim(2.0, 3.0)
     ax1.legend(fontsize=9, loc='lower right')
-    ax1.set_title('(a) Grid convergence ($R^*=1.0$, $\\mathrm{We}=7.9$, $N=150$)', fontsize=11)
+    ax1.set_title('(a) Grid convergence ($R^*=1.0$, $\\mathrm{We}=7.9$)', fontsize=11)
 
-    # Panel (b): % error vs Liu 2015 experimental reference
-    errors_pct = [(k / 2.6 - 1) * 100 for k in k_amp15]
+    # Panel (b): % error vs converged value (internal benchmark)
+    errors_pct = [(k / k_inf - 1) * 100 for k in k_amp15]
     bar_colors = ['#e74c3c' if e < 0 else '#e67e22' for e in errors_pct]
     bars = ax2.bar(N_vals, errors_pct, width=15, color=bar_colors, alpha=0.8,
                    edgecolor='black', linewidth=0.5)
     ax2.axhline(y=0, color='green', linestyle='--', linewidth=1.5, alpha=0.7,
-                label='Liu 2015 ref.')
-    for i, (n, e) in enumerate(zip(N_vals, errors_pct)):
-        offset = 0.5 if e >= 0 else 0.5
-        ax2.text(n, e + offset, f'{e:+.1f}%', ha='center', va='bottom',
-                 fontsize=8, fontweight='bold')
-
-    ax2.set_xlabel('Grid resolution $N$')
-    ax2.set_ylabel('Error vs Liu 2015 (%)')
-    ax2.set_xlim(60, 200)
-    ax2.set_ylim(-12, 5)
-    ax2.axhline(y=-2, color='gray', linestyle=':', alpha=0.5)
-    ax2.axhline(y=2, color='gray', linestyle=':', alpha=0.5)
-    ax2.text(195, -1.5, '±2%', fontsize=7, color='gray', ha='right')
-    ax2.set_title('(b) Error vs Liu 2015 ($\\alpha_{geo}=1.5$)', fontsize=11)
-
-    fig.tight_layout()
-    fig.savefig(os.path.join(fig_dir, 'fig4_resolution.pdf'))
-    fig.savefig(os.path.join(fig_dir, 'fig4_resolution.png'))
-    plt.close(fig)
-    print('  fig4_resolution.pdf OK')
-
+                label='converged $k_\\infty$')
 # ============================================================
 # Figure 5: Full phase diagram heatmap
 # ============================================================
