@@ -106,7 +106,7 @@ $R^*$ & $\theta_{eq}$ & We & $k_{max}$ ($\alpha=0$ / $\alpha=1.5$) & $\Delta k$ 
 \end{tabular}
 \end{table}
 
-The results demonstrate that $\alpha_{geo}=1.5$ consistently improves $k_{max}$ over $\alpha=0$ wherever the wetting BC is the limiting factor, confirming its robustness as a default on unseen parameters. (An earlier draft reported predictions from the scaling law Eq.~(\ref{eq:alpha_min}) for these cases; the predicted values are 1.14--1.40 over this range, within the 1.1--1.5 window stated above, but the experimental $\alpha=1.5$ runs shown here are the primary evidence.) Three patterns emerge:
+The results demonstrate that $\alpha_{geo}=1.5$ consistently improves $k_{max}$ over $\alpha=0$ wherever the wetting BC is the limiting factor, confirming its robustness as a default on unseen parameters. The scaling law (Eq.~\ref{eq:alpha_min}) indicates required amplifications of 1.14--1.40 over this range, within the stated 1.1--1.5 window; the experimental $\alpha=1.5$ runs shown here are the primary evidence. Three patterns emerge:
 
 \begin{enumerate}
     \item \textbf{For moderate-to-high $\theta_{eq}$ ($\geq 140^\circ$) and small-to-moderate $R^*$ ($\leq 1.5$)}: $\alpha=1.5$ improves $k_{max}$ by $+31$--$+33\%$ over $\alpha=0$, consistent with the curvature-dependent under-correction identified in Sec.~\ref{subsec:curvature}.
@@ -114,7 +114,7 @@ The results demonstrate that $\alpha_{geo}=1.5$ consistently improves $k_{max}$ 
     \item \textbf{For $\theta_{eq}=130^\circ$, $R^*=0.7$, We=15}: Amplification has no measurable effect. This case combines low contact angle with high Weber number, where spreading dynamics are dominated by inertial forces rather than wetting boundary conditions. This identifies a regime where the geometric WBC is not the performance bottleneck.
 \end{enumerate}
 
-The scaling law generalizes to unseen parameters as predicted: $\alpha_{pred}$ is sufficient (within $10\%$ of $\alpha=1.5$) for all superhydrophobic test cases ($\theta_{eq} \geq 140^\circ$), while correctly predicting minimal correction for lower contact angles. The single failure case (We=15, $\theta=130^\circ$, $R^*=0.7$) represents a regime of high-We, low-$\theta$ inertial spreading where wetting BCs have negligible influence on spreading dynamics---a physically expected limitation, not a failure of the amplification method.
+Across these unseen cases, $\alpha_{geo}=1.5$ improves $k_{max}$ by $+31$--$+33\%$ wherever the wetting BC is limiting and changes little where it is not; the single insensitive case (We=15, $\theta=130^\circ$, $R^*=0.7$) is a regime of high-We, low-$\theta$ inertial spreading where wetting BCs have negligible influence---a physically expected limitation, not a failure of the amplification method.
 
 \subsection{Grid Convergence}\label{subsec:grid_convergence}
 

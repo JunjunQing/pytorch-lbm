@@ -216,9 +216,19 @@ def fig4_resolution():
                    edgecolor='black', linewidth=0.5)
     ax2.axhline(y=0, color='green', linestyle='--', linewidth=1.5, alpha=0.7,
                 label='converged $k_\\infty$')
-# ============================================================
-# Figure 5: Full phase diagram heatmap
-# ============================================================
+
+    ax2.set_xlabel('Grid resolution $N$')
+    ax2.set_ylabel('Error vs converged $k_\\infty$ (%)')
+    ax2.set_xlim(60, 200)
+    ax2.set_ylim(-14, 1)
+    ax2.set_title('(b) Error vs $k_\\infty$', fontsize=11)
+    ax2.legend(fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(os.path.join(fig_dir, 'fig4_resolution.pdf'))
+    fig.savefig(os.path.join(fig_dir, 'fig4_resolution.png'))
+    plt.close(fig)
+    print('  fig4_resolution.pdf OK')
 def fig5_phase_diagram_heatmap():
     fig, ax = plt.subplots(1, 1, figsize=(6, 4.5))
 
